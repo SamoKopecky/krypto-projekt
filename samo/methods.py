@@ -17,7 +17,7 @@ def generate_cryptography_keys():
     return keys, public_key
 
 
-def generate_ssl_keys():
+def generate_openssl_keys():
     keys = crypto.PKey()
     keys.generate_key(crypto.TYPE_RSA, 2048)
     pem_pkey = crypto.dump_publickey(PEM_FORMAT, keys)
@@ -56,3 +56,16 @@ def start_sending():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((LOCALHOST, port))
     return client_socket
+
+
+def send_data(user_socket, data, string):
+    print('sending {}'.format(string))
+    user_socket.send(data)
+    wait_for_ack(user_socket)
+
+
+def receive_data(user_socket, string):
+    data = user_socket.recv(2048)
+    print('{} received'.format(string))
+    send_ack(user_socket)
+    return data
