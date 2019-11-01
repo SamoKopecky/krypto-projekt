@@ -1,6 +1,11 @@
 from OpenSSL import crypto
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes
+
 import socket
 
 LOCALHOST = '127.0.0.1'
@@ -23,6 +28,14 @@ def generate_openssl_keys():
     pem_pkey = crypto.dump_publickey(PEM_FORMAT, keys)
     public_key = crypto.load_publickey(PEM_FORMAT, pem_pkey)
     return keys, public_key
+
+
+def convert_key_from_ssl_to_crypt(pkey=crypto.PKey()):
+    public_key = serialization.load_pem_public_key(
+        crypto.dump_publickey(PEM_FORMAT, pkey),
+        default_backend(),
+    )
+    return public_key
 
 
 def wait_for_ack(s):
@@ -68,4 +81,28 @@ def receive_data(user_socket, string):
     data = user_socket.recv(2048)
     print('{} received'.format(string))
     send_ack(user_socket)
+    return data
+
+
+def rsa_encrypt(data, public_key):
+    cypher = public_key.encrypt(
+        data,
+        padding.OAEP(
+            padding.MGF1(hashes.SHA256()),
+            hashes.SHA256(),
+            None
+        )
+    )
+    return cypher
+
+
+def rsa_decrypt(cypher, private_key):
+    data = private_key.decrypt(
+        cypher,
+        padding.OAEP(
+            padding.MGF1(hashes.SHA256()),
+            hashes.SHA256(),
+            None
+        )
+    )
     return data

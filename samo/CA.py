@@ -3,7 +3,7 @@ from methods import *
 
 class CA:
     def __init__(self):
-        self.keys, self.public_key = generate_openssl_keys()
+        self.private_key, self.public_key = generate_openssl_keys()
         self.list_of_certs = []
 
     def create_cert(self, request):
@@ -22,7 +22,7 @@ class CA:
         cert.gmtime_adj_notBefore(0)
         cert.gmtime_adj_notAfter(60 * 60 * 24)  # 24 hours
         cert.set_pubkey(request.get_pubkey())
-        cert.sign(self.keys, 'sha256')
+        cert.sign(self.private_key, 'sha256')
         self.list_of_certs.append(cert)
         return cert
 
