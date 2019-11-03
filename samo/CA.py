@@ -1,15 +1,14 @@
-from methods import *
-
+from samo import utils
 
 class CA:
     def __init__(self):
-        self.private_key, self.public_key = generate_openssl_keys()
+        self.private_key, self.public_key = utils.generate_openssl_keys()
         self.list_of_certs = []
 
     def create_cert(self, request):
         # https://en.wikipedia.org/wiki/Public_key_certificate#Common_fields
         self.verify_cert_request(request)
-        cert = crypto.X509()
+        cert = utils.crypto.X509()
         cert.set_serial_number(1000)
         cert.get_subject().countryName = 'CZ'
         cert.get_subject().stateOrProvinceName = 'Czech Republic'
@@ -30,19 +29,19 @@ class CA:
         pass
 
     def listen_for_cert_req(self):
-        connection, address = start_listening()
+        connection, address = utils.start_listening()
         while True:
             data = connection.recv(2048)
             if data == b'sending cert request':
                 print('ready to accept, sending ack')
-                send_ack(connection)
-                data = receive_data(connection, 'cert req')
-                cert_req = crypto.load_certificate_request(PEM_FORMAT, data)
+                utils.send_ack(connection)
+                data = utils.receive_data(connection, 'cert req')
+                cert_req = utils.crypto.load_certificate_request(utils.PEM_FORMAT, data)
                 cert = self.create_cert(cert_req)
-                data_to_send = crypto.dump_certificate(PEM_FORMAT, cert)
-                send_data(connection, data_to_send, 'cert')
+                data_to_send = utils.crypto.dump_certificate(utils.PEM_FORMAT, cert)
+                utils.send_data(connection, data_to_send, 'cert')
             if data == b'fin':
-                send_ack(connection)
+                utils.send_ack(connection)
                 print('ending connection')
                 connection.close()
                 break

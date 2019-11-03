@@ -10,8 +10,10 @@ import socket
 
 LOCALHOST = '127.0.0.1'
 PEM_FORMAT = crypto.FILETYPE_PEM
-
-
+    """
+    TODO: DOCUMANTATION
+    """
+    
 def generate_cryptography_keys():
     keys = rsa.generate_private_key(
         public_exponent=65537,
@@ -106,3 +108,10 @@ def rsa_decrypt(cypher, private_key):
         )
     )
     return data
+
+
+def aes_encrypt(aes_key, aes_vector, data):
+    cipher = Cipher(algorithms.AES(aes_key),modes.CBC(aes_vector),default_backend())
+    encryptor = cipher.encryptor()
+    return encryptor.update(bytes(data,'utf-8')) + encryptor.finalize()
+
