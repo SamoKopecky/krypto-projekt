@@ -1,5 +1,5 @@
 import os
-from samo import utils
+import utils
 
 
 class User:
@@ -13,6 +13,8 @@ class User:
         self.other_public_key = utils.rsa.RSAPublicKey
         self.active_socket = utils.socket.socket()
         self.name = input('enter your name : ')
+        self.cipher = None
+        self.received_messages = []
 
     def create_request(self):
         ssl_public_key = utils.crypto.PKey.from_cryptography_key(self.public_key)
@@ -68,16 +70,37 @@ class User:
         # aes
         self.aes_key = os.urandom(32)
         self.aes_iv = os.urandom(16)
-        self.other_public_key = utils.convert_key_from_ssl_to_crypt(user.other_cert.get_pubkey())
+        self.other_public_key = utils.convert_key_from_ssl_to_crypt(self.other_cert.get_pubkey())
         data_to_send_1 = utils.rsa_encrypt(self.aes_key, self.other_public_key)
         data_to_send_2 = utils.rsa_encrypt(self.aes_iv, self.other_public_key)
         utils.send_data(self.active_socket, data_to_send_1, 'aes key')
         utils.send_data(self.active_socket, data_to_send_2, 'aes iv')
+        self.cipher = utils.Cipher(utils.algorithms.AES(self.aes_key),utils.modes.CBC(self.aes_iv),utils.default_backend())
+
+    def send_message(self):
+        message = input('input your message: ')
+        utils.aes_encrypt(self.cipher,message)
+        utils.send_data(self.active_socket,message, 'encrypted message')
+    
+    def receive_message(self):
+        message = utils.receive_data(self.active_socket, 'encrypted message').decode()
+        print(message)
+        self.received_messages.append(message)
+
+    def start_conversation(self):
+    
+        state = input('listen or send : ')
+        if state == 'listen':
+            self.receive_message()
+        if state == 'send':
+            self.send_message()
+        
 
 
-user = User()
-user.send_ca_request()
-user.exchange_certs_and_keys()
-print('aes : {}'.format(user.aes_key))
-print('iv : {}'.format(user.aes_iv))
-
+def use_user():
+    user = User()
+    user.send_ca_request()
+    user.exchange_certs_and_keys()
+    print('aes : {}'.format(user.aes_key))
+    print('iv : {}'.format(user.aes_iv))
+    user.start_conversation()

@@ -1,4 +1,4 @@
-from samo import utils
+import utils
 
 class CA:
     def __init__(self):
@@ -47,6 +47,9 @@ class CA:
                 break
 
 
-ca = CA()
-while True:
-    ca.listen_for_cert_req()
+            #verify function for certificate
+        
+def use_ca():
+    ca = CA()
+    while True:
+        ca.listen_for_cert_req()
