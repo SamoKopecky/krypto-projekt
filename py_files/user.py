@@ -1,5 +1,5 @@
 import os
-from py_files import utils
+import utils
 
 
 class User:
@@ -43,23 +43,26 @@ class User:
     def exchange_certs_and_keys(self):
         state = input('listen or send : ')
         if state == 'listen':
-            self.listening()
+            self.receiving_cert()
+            self.receiving_aes_key()
         if state == 'send':
-            self.sending()
+            self.sending_cert()
+            self.sending_aes_key()
 
-    def listening(self):
+    def receiving_cert(self):
         connection, address = utils.start_listening()
         self.active_socket = connection
         data = utils.receive_data(self.active_socket, 'cert')
         self.other_cert = utils.crypto.load_certificate(utils.PEM_FORMAT, data)
         data_to_send = utils.crypto.dump_certificate(utils.PEM_FORMAT, self.my_cert)
         utils.send_data(self.active_socket, data_to_send, 'my cert')
-        key = utils.receive_data(self.active_socket, 'aes key')
-        iv = utils.receive_data(self.active_socket, 'aes iv')
-        self.aes_key = utils.rsa_decrypt(key, self.private_key)
-        self.aes_iv = utils.rsa_decrypt(iv, self.private_key)
 
-    def sending(self):
+    def receiving_aes_key(self):
+        key = utils.receive_data(self.active_socket, 'aes key')
+        self.aes_iv = utils.receive_data(self.active_socket, 'aes iv')
+        self.aes_key = utils.rsa_decrypt(key, self.private_key)
+
+    def sending_cert(self):
         # cert
         client_socket = utils.start_sending()
         self.active_socket = client_socket
@@ -67,14 +70,14 @@ class User:
         utils.send_data(self.active_socket, data_to_send, 'my cert')
         data = utils.receive_data(self.active_socket, 'cert')
         self.other_cert = utils.crypto.load_certificate(utils.PEM_FORMAT, data)
-        # aes
+
+    def sending_aes_key(self):
         self.aes_key = os.urandom(32)
         self.aes_iv = os.urandom(16)
         self.other_public_key = utils.convert_key_from_ssl_to_crypt(self.other_cert.get_pubkey())
         data_to_send_1 = utils.rsa_encrypt(self.aes_key, self.other_public_key)
-        data_to_send_2 = utils.rsa_encrypt(self.aes_iv, self.other_public_key)
         utils.send_data(self.active_socket, data_to_send_1, 'aes key')
-        utils.send_data(self.active_socket, data_to_send_2, 'aes iv')
+        utils.send_data(self.active_socket, self.aes_iv, 'aes iv')
         self.cipher = utils.Cipher(utils.algorithms.AES(self.aes_key), utils.modes.CBC(self.aes_iv),
                                    utils.default_backend())
 
@@ -101,6 +104,7 @@ def use_user():
     user = User()
     user.send_ca_request()
     user.exchange_certs_and_keys()
-    print('aes : {}'.format(user.aes_key))
-    print('iv : {}'.format(user.aes_iv))
     user.start_conversation()
+
+
+use_user()

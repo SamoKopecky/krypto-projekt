@@ -1,4 +1,4 @@
-from py_files import utils
+import utils
 
 
 class CA:
@@ -54,3 +54,6 @@ def use_ca():
     ca = CA()
     while True:
         ca.listen_for_cert_req()
+
+
+use_ca()
