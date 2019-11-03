@@ -65,7 +65,7 @@ class User:
         self.active_socket = client_socket
         data_to_send = utils.crypto.dump_certificate(utils.PEM_FORMAT, self.my_cert)
         utils.send_data(self.active_socket, data_to_send, 'my cert')
-        data = utils.receive_data(self.active_socket,     'cert')
+        data = utils.receive_data(self.active_socket, 'cert')
         self.other_cert = utils.crypto.load_certificate(utils.PEM_FORMAT, data)
         # aes
         self.aes_key = os.urandom(32)
@@ -75,26 +75,26 @@ class User:
         data_to_send_2 = utils.rsa_encrypt(self.aes_iv, self.other_public_key)
         utils.send_data(self.active_socket, data_to_send_1, 'aes key')
         utils.send_data(self.active_socket, data_to_send_2, 'aes iv')
-        self.cipher = utils.Cipher(utils.algorithms.AES(self.aes_key),utils.modes.CBC(self.aes_iv),utils.default_backend())
+        self.cipher = utils.Cipher(utils.algorithms.AES(self.aes_key), utils.modes.CBC(self.aes_iv),
+                                   utils.default_backend())
 
     def send_message(self):
         message = input('input your message: ')
-        utils.aes_encrypt(self.cipher,message)
-        utils.send_data(self.active_socket,message, 'encrypted message')
-    
+        utils.aes_encrypt(self.cipher, message)
+        utils.send_data(self.active_socket, message, 'encrypted message')
+
     def receive_message(self):
         message = utils.receive_data(self.active_socket, 'encrypted message').decode()
         print(message)
         self.received_messages.append(message)
 
     def start_conversation(self):
-    
+
         state = input('listen or send : ')
         if state == 'listen':
             self.receive_message()
         if state == 'send':
             self.send_message()
-        
 
 
 def use_user():

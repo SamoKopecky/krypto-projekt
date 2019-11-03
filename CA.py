@@ -1,5 +1,6 @@
 import utils
 
+
 class CA:
     def __init__(self):
         self.private_key, self.public_key = utils.generate_openssl_keys()
@@ -46,9 +47,9 @@ class CA:
                 connection.close()
                 break
 
+            # verify function for certificate
 
-            #verify function for certificate
-        
+
 def use_ca():
     ca = CA()
     while True:
