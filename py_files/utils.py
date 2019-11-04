@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 from crypto.util import padding
-from crypto.cipher import AES 
+from crypto.cipher import AES
 import base64
 import socket
 
@@ -62,10 +62,13 @@ def finish_conn(s):  # koniec spojenia
     s.close()
 
 
-def start_listening():
-    port = int(input('choose port to listen to : '))  # uzivatel si zvoli port
+def start_listening(port):
+    if port is None:  # podmienka pridana len ked port uz zvoleny vpred
+        port = int(input('choose port to listen to : '))  # uzivatel si zvoli port
     # AF_INET znamena ze komunikacia bude v IPV4, SOCK_STREAM je standarne nastavenie pre komunikaciu dvoch socketov
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # zaisti ze port mozem byt znova pouziti po ukonecni spojenia
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((LOCALHOST, port))  # server nastavy na akom porte a adrese bude pocuvat
     server_socket.listen()  # tu zacne naozaj posluchat
     # prime komunikaciu ak sa niekto iny pripoji na port volby
@@ -78,6 +81,8 @@ def start_listening():
 def start_sending():
     port = int(input('choose port to send to : '))
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # zaisti ze port mozem byt znova pouziti po ukonecni spojenia
+    client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     client_socket.connect((LOCALHOST, port))  # pripojenie na port a adresu volby
     return client_socket
 
@@ -120,9 +125,9 @@ def rsa_decrypt(cipher_text, private_key):  # ten isty proces len je to desifrov
 
 
 def aes_encrypt(cipher, data):
- # vybranie encryptora z cipher objektu
-    pad_data = padding.pad(data, AES.block_size)#TODO:??
-    return base64.b64encode(cipher.encrypt(pad_data))# siforovanie dat
+    # vybranie encryptora z cipher objektu
+    pad_data = padding.pad(data, AES.block_size)  # TODO:??
+    return base64.b64encode(cipher.encrypt(pad_data))  # siforovanie dat
     # update nam ulozi data ktore budeme sifrovat
     # finalize znamena ze sa uz nedaju vlozit ziadne data a delej sifrovat
 

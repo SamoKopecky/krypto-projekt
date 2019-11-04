@@ -58,7 +58,7 @@ class User:
             self.sending_aes_key()
 
     def receiving_cert(self):
-        connection, address = utils.start_listening()  # zacatie komunikacie
+        connection, address = utils.start_listening(None)  # zacatie komunikacie
         self.active_socket = connection  # nastavenie socketu cez ktory sa bude komunnikovat
         data = utils.receive_data(self.active_socket, 'cert')
         # nacitanie cudzieho certifikatu z PEM formatu
@@ -89,7 +89,7 @@ class User:
         utils.send_data(self.active_socket, data_to_send_1, 'aes key')
         utils.send_data(self.active_socket, self.aes_iv, 'aes iv')
         # generacia cipheru ktory nam umoznuje sifrovat a desifrovats
-        self.cipher = utils.AES.new(self.aes_key, utils.AES.MODE_CBC,self.aes.iv)
+        self.cipher = utils.AES.new(self.aes_key, utils.AES.MODE_CBC, self.aes_iv)
 
     def send_message(self):  # posielanie zasifrovanej zpravy
         message = input('input your message: ')

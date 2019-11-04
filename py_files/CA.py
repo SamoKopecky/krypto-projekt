@@ -31,8 +31,8 @@ class CA:
     def verify_cert_request(self, request):
         pass  # TODO
 
-    def listen_for_cert_req(self):  # funkcia ktora stale bezi a pocuva na portoch ktorych si zvolime
-        connection, address = utils.start_listening()  # zacatie komunikacie, vrati name socket(connection)
+    def listen_for_cert_req(self, port):  # funkcia ktora stale bezi a pocuva na portoch ktorych si zvolime
+        connection, address = utils.start_listening(port)  # zacatie komunikacie, vrati name socket(connection)
         while True:
             data = connection.recv(2048)  # ukladanie dat po castiach velkych 2048 bajtov
             if data == b'sending cert request':  # ak je user pripraveny posielat ziadost o certifikat
@@ -46,7 +46,7 @@ class CA:
                 utils.send_data(connection, data_to_send, 'cert')  # posle PEM format certifikatu
             if data == b'fin':  # ak user chce ukoncit spojenie
                 utils.send_ack(connection)
-                print('ending connection')
+                print('ending connection, the same port can be used again')
                 connection.close()  # ukoncenie spojenia na porte
                 break
 
@@ -55,8 +55,9 @@ class CA:
 
 def use_ca():
     ca = CA()
+    port = int(input('choose port to listen to : '))  # uzivatel si zvoli port
     while True:
-        ca.listen_for_cert_req()
+        ca.listen_for_cert_req(port)
 
 
 use_ca()
