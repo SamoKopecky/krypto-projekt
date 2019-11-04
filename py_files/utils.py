@@ -17,7 +17,7 @@ PEM_FORMAT = crypto.FILETYPE_PEM
 # generujeme 2 pary RSA klucov
 # 1. je z kniznice pyopenssl na pracovanie z certifikatnmy
 # 2. je z kniznice cryptography z pracovanie z RSA
-def generate_cryptography_keys():  # generacia RSA klucov z kniznice cryptography,
+def generate_cryptography_rsa_keys():  # generacia RSA klucov z kniznice cryptography,
     keys = rsa.generate_private_key(
         public_exponent=65537,  # exponent public kluca
         key_size=2048,
@@ -27,7 +27,7 @@ def generate_cryptography_keys():  # generacia RSA klucov z kniznice cryptograph
     return keys, public_key
 
 
-def generate_openssl_keys():  # generacia paru RSA klucov z opyopenssl
+def generate_openssl_rsa_keys():  # generacia paru RSA klucov z opyopenssl
     keys = crypto.PKey()
     keys.generate_key(crypto.TYPE_RSA, 2048)
     pem_pkey = crypto.dump_publickey(PEM_FORMAT, keys)
@@ -35,7 +35,7 @@ def generate_openssl_keys():  # generacia paru RSA klucov z opyopenssl
     return keys, public_key
 
 
-def convert_key_from_ssl_to_crypt(pkey=crypto.PKey()):  # konvertovanie z ssl to cyrptograhy
+def convert_key_from_ssl_to_cryptography(pkey=crypto.PKey()):  # konvertovanie z ssl to cyrptograhy
     # najprv dump_publickey prekonvertuje kluc na pem format a load_pem_public vycita z PEM formatu kluc
     public_key = serialization.load_pem_public_key(
         crypto.dump_publickey(PEM_FORMAT, pkey),
@@ -44,20 +44,20 @@ def convert_key_from_ssl_to_crypt(pkey=crypto.PKey()):  # konvertovanie z ssl to
     return public_key
 
 
-def wait_for_ack(s):
+def wait_for_acknowledgement(s):
     # program stoji pokial nedostane 'ack' spravu b pred 'ack' znamena ze je to bajt format
     while s.recv(
             2048) != b'ack':
         pass
 
 
-def send_ack(s):
+def send_acknowledgement(s):
     s.send(b'ack')  # posielanie 'ack'
 
 
-def finish_conn(s):  # koniec spojenia
+def finish_connection(s):  # koniec spojenia
     s.send(b'fin')
-    wait_for_ack(s)
+    wait_for_acknowledgement(s)
     print('ending communication')
     s.close()
 
@@ -90,13 +90,13 @@ def start_sending():
 def send_data(user_socket, data, string):
     print('sending {}'.format(string))
     user_socket.send(data)  # poslanie dat cez socket
-    wait_for_ack(user_socket)  # cakanie na 'ack' spravu od hosta ktory prima zpravu
+    wait_for_acknowledgement(user_socket)  # cakanie na 'ack' spravu od hosta ktory prima zpravu
 
 
 def receive_data(user_socket, string):
     data = user_socket.recv(2048)
     print('{} received'.format(string))
-    send_ack(user_socket)  # poslanie'ack' spravy na ktoru caka odosielatel
+    send_acknowledgement(user_socket)  # poslanie'ack' spravy na ktoru caka odosielatel
     return data
 
 

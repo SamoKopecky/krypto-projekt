@@ -3,12 +3,12 @@ import utils
 
 class CA:
     def __init__(self):
-        self.private_key, self.public_key = utils.generate_openssl_keys()  # vytvorenie RSA klucov
+        self.private_key, self.public_key = utils.generate_openssl_rsa_keys()  # vytvorenie RSA klucov
         self.list_of_certs = []
 
-    def create_cert(self, request):
+    def create_certificate_from_request(self, request):
         # https://en.wikipedia.org/wiki/Public_key_certificate#Common_fields
-        self.verify_cert_request(request)
+        self.verify_certificate_request(request)
         cert = utils.crypto.X509()  # vytovrenie x509 certifikatu
         # nastavnie vlastnosti
         cert.set_serial_number(1000)
@@ -28,10 +28,10 @@ class CA:
         self.list_of_certs.append(cert)
         return cert
 
-    def verify_cert_request(self, request):
+    def verify_certificate_request(self, request):
         pass  # TODO
 
-    def listen_for_cert_req(self, port):  # funkcia ktora stale bezi a pocuva na portoch ktorych si zvolime
+    def receive_certificate_request(self, port):  # funkcia ktora stale bezi a pocuva na portoch ktorych si zvolime
         connection, address = utils.start_listening(port)  # zacatie komunikacie, vrati name socket(connection)
         while True:
             data = connection.recv(2048)  # ukladanie dat po castiach velkych 2048 bajtov
@@ -41,7 +41,7 @@ class CA:
                 data = utils.receive_data(connection, 'cert req')  # prima data od usera
                 # prekonvertuje PEM format na format x509 request
                 cert_req = utils.crypto.load_certificate_request(utils.PEM_FORMAT, data)
-                cert = self.create_cert(cert_req)  # vytvori certifikat
+                cert = self.create_certificate_from_request(cert_req)  # vytvori certifikat
                 data_to_send = utils.crypto.dump_certificate(utils.PEM_FORMAT, cert)  # konvertuje na PEM format
                 utils.send_data(connection, data_to_send, 'cert')  # posle PEM format certifikatu
             if data == b'fin':  # ak user chce ukoncit spojenie
@@ -57,7 +57,7 @@ def use_ca():
     ca = CA()
     port = int(input('choose port to listen to : '))  # uzivatel si zvoli port
     while True:
-        ca.listen_for_cert_req(port)
+        ca.receive_certificate_request(port)
 
 
 use_ca()
