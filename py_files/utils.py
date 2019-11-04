@@ -5,7 +5,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
-
+from crypto.util import padding
+from crypto.cipher import AES 
+import base64
 import socket
 
 LOCALHOST = '127.0.0.1'
@@ -118,12 +120,14 @@ def rsa_decrypt(cipher_text, private_key):  # ten isty proces len je to desifrov
 
 
 def aes_encrypt(cipher, data):
-    encryptor = cipher.encryptor()  # vybranie encryptora z cipher objektu
-    return encryptor.update(bytes(data, 'utf-8')) + encryptor.finalize()  # siforovanie dat
+ # vybranie encryptora z cipher objektu
+    pad_data = padding.pad(data, AES.block_size)#TODO:??
+    return base64.b64encode(cipher.encrypt(pad_data))# siforovanie dat
     # update nam ulozi data ktore budeme sifrovat
     # finalize znamena ze sa uz nedaju vlozit ziadne data a delej sifrovat
 
 
 def aes_decrypt(cipher, c_data):  # to ise ale desiforvanie
-    decryptor = cipher.decryptor()
-    return decryptor.update(cipher) + decryptor.finalize()
+    c_data = base64.b64decode(c_data)
+    unpaded_c_data = padding.unpad(c_data)
+    return cipher.decrypt(unpaded_c_data)

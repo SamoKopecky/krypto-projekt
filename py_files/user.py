@@ -89,8 +89,7 @@ class User:
         utils.send_data(self.active_socket, data_to_send_1, 'aes key')
         utils.send_data(self.active_socket, self.aes_iv, 'aes iv')
         # generacia cipheru ktory nam umoznuje sifrovat a desifrovats
-        self.cipher = utils.Cipher(utils.algorithms.AES(self.aes_key), utils.modes.CBC(self.aes_iv),
-                                   utils.default_backend())
+        self.cipher = utils.AES.new(self.aes_key, utils.AES.MODE_CBC,self.aes.iv)
 
     def send_message(self):  # posielanie zasifrovanej zpravy
         message = input('input your message: ')
@@ -98,7 +97,8 @@ class User:
         utils.send_data(self.active_socket, message, 'encrypted message')
 
     def receive_message(self):  # prijatie zasifrovanej spravy
-        message = utils.receive_data(self.active_socket, 'encrypted message').decode()
+        c_message = utils.receive_data(self.active_socket, 'encrypted message')
+        message = utils.aes_decrypt(self.cipher, c_message)
         print(message)
         self.received_messages.append(message)
 
