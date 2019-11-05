@@ -37,7 +37,7 @@ class CA:
             data = connection.recv(2048)  # ukladanie dat po castiach velkych 2048 bajtov
             if data == b'sending cert request':  # ak je user pripraveny posielat ziadost o certifikat
                 print('ready to accept, sending ack')
-                utils.send_ack(connection)  # autorita posiela acknowledgement(suhlas o tom ze dostal spravu)
+                utils.send_acknowledgement(connection)  # autorita posiela acknowledgement(suhlas o tom ze dostal spravu)
                 data = utils.receive_data(connection, 'cert req')  # prima data od usera
                 # prekonvertuje PEM format na format x509 request
                 cert_req = utils.crypto.load_certificate_request(utils.PEM_FORMAT, data)
@@ -45,7 +45,7 @@ class CA:
                 data_to_send = utils.crypto.dump_certificate(utils.PEM_FORMAT, cert)  # konvertuje na PEM format
                 utils.send_data(connection, data_to_send, 'cert')  # posle PEM format certifikatu
             if data == b'fin':  # ak user chce ukoncit spojenie
-                utils.send_ack(connection)
+                utils.send_acknowledgement(connection)
                 print('ending connection, the same port can be used again')
                 connection.close()  # ukoncenie spojenia na porte
                 break
