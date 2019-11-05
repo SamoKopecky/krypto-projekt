@@ -53,9 +53,11 @@ class User:
         if state == 'listen':
             self.receiving_cert()
             self.receiving_aes_key()
+            self._create_aes_cipher()
         if state == 'send':
             self.sending_cert()
             self.sending_aes_key()
+            self._create_aes_cipher()
 
     def receiving_cert(self):
         connection, address = utils.start_listening()  # zacatie komunikacie
@@ -84,30 +86,43 @@ class User:
         self.aes_key = os.urandom(32)  # generacia 32 bajtoveho kluca 128 bitov
         self.aes_iv = os.urandom(16)  # generacie 16 bajtoveho vektoru
         # konvertovanie verejneho kluca cudzieho hosta na format cryptography kniznice aby sme z nim mohli sifrovat
-        self.other_public_key = utils.convert_key_from_ssl_to_crypt(self.other_cert.get_pubkey())
-        data_to_send_1 = utils.rsa_encrypt(self.aes_key, self.other_public_key)
+        self.other_public_key = utils.convert_key_from_ssl_to_crypt(
+                                        self.other_cert.get_pubkey())
+        data_to_send_1 = utils.rsa_encrypt(self.aes_key, 
+                                            self.other_public_key)
         utils.send_data(self.active_socket, data_to_send_1, 'aes key')
         utils.send_data(self.active_socket, self.aes_iv, 'aes iv')
-        # generacia cipheru ktory nam umoznuje sifrovat a desifrovats
-        self.cipher = utils.AES.new(self.aes_key, utils.AES.MODE_CBC,self.aes.iv)
+    
 
+    def _create_aes_cipher(self):
+        if self.aes_key is None or self.aes_iv is None:
+            raise ValueError('null value')
+        self.cipher = utils.Cipher(utils.algorithms.AES(self.aes_key), 
+                                    utils.modes.CBC(self.aes_iv),
+                                   utils.default_backend())
+    
     def send_message(self):  # posielanie zasifrovanej zpravy
         message = input('input your message: ')
-        utils.aes_encrypt(self.cipher, message)
-        utils.send_data(self.active_socket, message, 'encrypted message')
+        c_message = utils.aes_encrypt(self.cipher, bytes(message,'utf-8'))
+        utils.send_data(self.active_socket, c_message, 'encrypted message')
 
     def receive_message(self):  # prijatie zasifrovanej spravy
         c_message = utils.receive_data(self.active_socket, 'encrypted message')
         message = utils.aes_decrypt(self.cipher, c_message)
-        print(message)
-        self.received_messages.append(message)
+        print(message.decode())
+        self.received_messages.append(message.decode())
 
     def start_conversation(self):  # volba posielania alebo primania
-        state = input('listen or send : ')
-        if state == 'listen':
-            self.receive_message()
-        if state == 'send':
-            self.send_message()
+        conversation = True
+        while (conversation): 
+            state = input('choose if you expect to listen or send message or quit(listen/send/quit): ')
+            if state == 'listen':
+                self.receive_message()
+            if state == 'send':
+                self.send_message()
+            if state == 'quit':
+                conversation = False 
+
 
 
 def use_user():  # start usera
@@ -117,4 +132,4 @@ def use_user():  # start usera
     user.start_conversation()
 
 
-use_user()
+

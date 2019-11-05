@@ -5,9 +5,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
-from crypto.util import padding
-from crypto.cipher import AES 
-import base64
+from cryptography.hazmat.primitives import padding as sym_padding
 import socket
 
 LOCALHOST = '127.0.0.1'
@@ -46,8 +44,7 @@ def convert_key_from_ssl_to_crypt(pkey=crypto.PKey()):  # konvertovanie z ssl to
 
 def wait_for_ack(s):
     # program stoji pokial nedostane 'ack' spravu b pred 'ack' znamena ze je to bajt format
-    while s.recv(
-            2048) != b'ack':
+    while s.recv(2048) != b'ack':
         pass
 
 
@@ -84,7 +81,7 @@ def start_sending():
 
 def send_data(user_socket, data, string):
     print('sending {}'.format(string))
-    user_socket.send(data)  # poslanie dat cez socket
+    user_socket.send(data)  # poslanie dat cez socke
     wait_for_ack(user_socket)  # cakanie na 'ack' spravu od hosta ktory prima zpravu
 
 
@@ -119,15 +116,22 @@ def rsa_decrypt(cipher_text, private_key):  # ten isty proces len je to desifrov
     return data
 
 
-def aes_encrypt(cipher, data):
+def aes_encrypt(cipher, data:bytes):
  # vybranie encryptora z cipher objektu
-    pad_data = padding.pad(data, AES.block_size)#TODO:??
-    return base64.b64encode(cipher.encrypt(pad_data))# siforovanie dat
+    encryptor = cipher.encryptor()
+    padder = sym_padding.PKCS7(cipher.algorithm.block_size).padder()
+    paded_data = padder.update(data)
+    paded_data += padder.finalize()
+    return encryptor.update(paded_data) + encryptor.finalize()# siforovanie dat
     # update nam ulozi data ktore budeme sifrovat
     # finalize znamena ze sa uz nedaju vlozit ziadne data a delej sifrovat
 
 
-def aes_decrypt(cipher, c_data):  # to ise ale desiforvanie
-    c_data = base64.b64decode(c_data)
-    unpaded_c_data = padding.unpad(c_data)
-    return cipher.decrypt(unpaded_c_data)
+def aes_decrypt(cipher, c_data:bytes):  # to ise ale desiforvanie
+    decryptor = cipher.decryptor()
+    data = decryptor.update(c_data) + decryptor.finalize()
+    unpadder = sym_padding.PKCS7(cipher.algorithm.block_size).unpadder()
+    unpaded_data = unpadder.update(data)  #should unpad bytes
+    unpaded_data += unpadder.finalize()
+    print(unpaded_data.decode()) 
+    return unpaded_data
