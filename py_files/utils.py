@@ -122,10 +122,12 @@ def rsa_decrypt(cipher_text, private_key):  # ten isty proces len je to desifrov
 
 
 def aes_encrypt(cipher, data:bytes):
- # vybranie encryptora z cipher objektu
+    """
+    aes encryption with padding
+    """
     encryptor = cipher.encryptor()
-    padder = sym_padding.PKCS7(cipher.algorithm.block_size).padder()
-    paded_data = padder.update(data)
+    padder = sym_padding.PKCS7(cipher.algorithm.block_size).padder() 
+    paded_data = padder.update(data) #data musia byt doplnene do bloku
     paded_data += padder.finalize()
     return encryptor.update(paded_data) + encryptor.finalize()# siforovanie dat
     # update nam ulozi data ktore budeme sifrovat
@@ -133,10 +135,12 @@ def aes_encrypt(cipher, data:bytes):
 
 
 def aes_decrypt(cipher, c_data:bytes):  # to ise ale desiforvanie
+    """
+    aes decryption with unpadding
+    """
     decryptor = cipher.decryptor()
     data = decryptor.update(c_data) + decryptor.finalize()
     unpadder = sym_padding.PKCS7(cipher.algorithm.block_size).unpadder()
-    unpaded_data = unpadder.update(data)  #should unpad bytes
+    unpaded_data = unpadder.update(data) 
     unpaded_data += unpadder.finalize()
-    print(unpaded_data.decode()) 
     return unpaded_data

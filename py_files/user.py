@@ -86,6 +86,10 @@ class User:
         self.other_certificate = utils.crypto.load_certificate(utils.PEM_FORMAT, data)
 
     def sending_aes_key(self):
+        """
+        this method generate aes key and vector 
+        which it send to other user encrepted with rsa
+        """
         # generacia 32 bajtoveho kluca 128 bitov a 16 bajtoveho vektoru        
         self.aes_key, self.aes_iv = os.urandom(32), os.urandom(16) 
         # konvertovanie verejneho kluca cudzieho hosta na format cryptography kniznice aby sme z nim mohli sifrovat
@@ -98,6 +102,9 @@ class User:
     
 
     def _create_aes_cipher(self):
+        """
+            method for just creating aes cipher
+        """
         if self.aes_key is None or self.aes_iv is None:
             raise ValueError('null value')
         self.cipher = utils.Cipher(utils.algorithms.AES(self.aes_key), 
@@ -105,20 +112,33 @@ class User:
                                    utils.default_backend())
     
     def send_message(self):  # posielanie zasifrovanej zpravy
+        """
+            method where you input some message a then encrypt it and send
+        """
         message = input('input your message: ')
         c_message = utils.aes_encrypt(self.cipher, bytes(message,'utf-8'))
         utils.send_data(self.active_socket, c_message, 'encrypted message')
 
     def receive_message(self):  # prijatie zasifrovanej spravy
+        """
+            this method is for recieving message and then decrypting it 
+            and then storing it in list of recieved message
+        """
         c_message = utils.receive_data(self.active_socket, 'encrypted message')
         message = utils.aes_decrypt(self.cipher, c_message)
         print(message.decode())
         self.received_messages.append(message.decode())
 
     def start_conversation(self):  # volba posielania alebo primania
+        """
+        function for making conversation
+        For now, at first you must choose listen on one user 
+        and then choose sent on second
+        """
         conversation = True
         while (conversation): 
-            state = input('choose if you expect to listen or send message or quit(listen/send/quit): ')
+            state = input('choose if you expect to listen or \
+                            send message or quit(listen/send/quit): ')
             if state == 'listen':
                 self.receive_message()
             if state == 'send':
