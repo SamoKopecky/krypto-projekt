@@ -84,8 +84,8 @@ class User:
         self.other_certificate = utils.crypto.load_certificate(utils.PEM_FORMAT, data)
 
     def sending_aes_key(self):
-        self.aes_key = os.urandom(32)  # generacia 32 bajtoveho kluca 128 bitov
-        self.aes_iv = os.urandom(16)  # generacie 16 bajtoveho vektoru
+        # generacia 32 bajtoveho kluca 128 bitov a 16 bajtoveho vektoru        
+        self.aes_key, self.aes_iv = os.urandom(32), os.urandom(16) 
         # konvertovanie verejneho kluca cudzieho hosta na format cryptography kniznice aby sme z nim mohli sifrovat
         self.other_public_key = utils.convert_key_from_ssl_to_cryptography(self.other_certificate.get_pubkey())
         data_to_send_1 = utils.rsa_encrypt(self.aes_key, self.other_public_key)
