@@ -48,7 +48,7 @@ class CA:
         while True:
             data = connection.recv(2048)
             if data == b'sending cert request':
-                self.send_certificatfe(connection)
+                self.send_certificate(connection)
             if data == b'fin':
                 utils.send_acknowledgement(connection)
                 print('ending connection, the same port can be used again')
