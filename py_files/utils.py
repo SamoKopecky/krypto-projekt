@@ -66,7 +66,7 @@ def send_acknowledgement(active_socket):
         sending a byte message to indicate acknowledgement
         :param active_socket: active socket of the host
     """
-    active_socket.send(b'ack')  # posielanie 'ack'
+    active_socket.send(b'ack')
 
 
 def finish_connection(active_socket):
@@ -95,6 +95,7 @@ def start_receiving(port):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((LOCALHOST, port))
+    server_socket.listen()
     connection, address = server_socket.accept()
     print('connected to {}'.format(address))
     return connection
