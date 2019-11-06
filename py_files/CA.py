@@ -48,14 +48,14 @@ class CA:
         while True:
             data = connection.recv(2048)
             if data == b'sending cert request':
-                self.send_certificate_request(connection)
+                self.send_certificatfe(connection)
             if data == b'fin':
                 utils.send_acknowledgement(connection)
                 print('ending connection, the same port can be used again')
                 connection.close()
                 break
 
-    def send_certificate_request(self, connection):
+    def send_certificate(self, connection):
         """
             first we convert the certificate request form PEM to x509Req format, create the certificate and
             send the certificate back to the user

@@ -52,8 +52,8 @@ class User:
             utils.PEM_FORMAT,
             self.create_certificate_request()
         )
-        utils.send_data(client_socket, data_to_send, 'cert req')  # odoslanie ziadosti
-        data = utils.receive_data(client_socket, 'cert')  # prijatie ziadost v PEM formate
+        utils.send_data(client_socket, data_to_send, 'cert req')
+        data = utils.receive_data(client_socket, 'cert')
         self.my_certificate = utils.crypto.load_certificate(utils.PEM_FORMAT, data)
         utils.finish_connection(client_socket)
 
@@ -95,8 +95,7 @@ class User:
         """
             same thing as receive but reverse, user sends then listens for certificate
         """
-        client_socket = utils.start_sending()
-        self.active_socket = client_socket
+        self.active_socket = utils.start_sending()
         data_to_send = utils.crypto.dump_certificate(utils.PEM_FORMAT, self.my_certificate)
         utils.send_data(self.active_socket, data_to_send, 'my cert')
         data = utils.receive_data(self.active_socket, 'cert')
@@ -111,19 +110,20 @@ class User:
         """
         self.aes_key, self.aes_iv = os.urandom(32), os.urandom(16)
         self.other_public_key = utils.convert_key_from_ssl_to_cryptography(self.other_certificate.get_pubkey())
-        data_to_send_1 = utils.rsa_encrypt(self.aes_key, self.other_public_key)
-        utils.send_data(self.active_socket, data_to_send_1, 'aes key')
+        data_to_send = utils.rsa_encrypt(self.aes_key, self.other_public_key)
+        utils.send_data(self.active_socket, data_to_send, 'aes key')
         utils.send_data(self.active_socket, self.aes_iv, 'aes iv')
 
     def _create_aes_cipher(self):
         """
-            method for just creating aes cipher using CBC
+            method for just creating aes cipher using CBC and AES
         """
         if self.aes_key is None or self.aes_iv is None:
             raise ValueError('null value')
         self.cipher = utils.Cipher(utils.algorithms.AES(self.aes_key),
                                    utils.modes.CBC(self.aes_iv),
-                                   utils.default_backend())
+                                   utils.default_backend()
+                                   )
 
     def send_message(self):
         """
