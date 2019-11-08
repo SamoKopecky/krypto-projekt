@@ -15,6 +15,8 @@ class User:
         self.cipher = utils.Cipher
         self.my_certificate = utils.crypto.X509()
         self.private_key, self.public_key = utils.generate_cryptography_rsa_keys()
+        self.ssl_public_key = utils.crypto.PKey.from_cryptography_key(self.public_key)
+        self.ssl_private_key = utils.crypto.PKey.from_cryptography_key(self.private_key)
         self.other_certificate = utils.crypto.X509()
         self.other_public_key = utils.rsa.RSAPublicKey
         self.active_socket = utils.socket.socket()
@@ -27,8 +29,6 @@ class User:
             request.get_subject is our info that the CA will put as issuer
             :return: returns created certificate request
         """
-        ssl_public_key = utils.crypto.PKey.from_cryptography_key(self.public_key)
-        ssl_private_key = utils.crypto.PKey.from_cryptography_key(self.private_key)
         request = utils.crypto.X509Req()
         request.get_subject().countryName = 'CZ'
         request.get_subject().stateOrProvinceName = 'Czech Republic'
@@ -37,25 +37,31 @@ class User:
         request.get_subject().organizationalUnitName = 'VUT'
         request.get_subject().commonName = '{}-vut.cz'.format(self.name)
         request.get_subject().emailAddress = '{}@vut.cz'.format(self.name)
-        request.set_pubkey(ssl_public_key)
-        request.sign(ssl_private_key, 'sha256')
+        request.set_pubkey(self.ssl_public_key)
+        request.sign(self.ssl_private_key, 'sha256')
         return request
 
     def send_request_to_ca(self):
         """
             In here we get ready for communication, convert the certificate request to PEM format so
             that it can be sent and then we send it and then we close the connection with CA
+            if the verification failed try again
         """
-        client_socket = utils.start_sending()
-        utils.send_data(client_socket, b'sending cert request', 'request to start communication')
+        self.active_socket = utils.start_sending()
+        utils.send_data(self.active_socket, b'sending cert request', 'request to start communication')
         data_to_send = utils.crypto.dump_certificate_request(
             utils.PEM_FORMAT,
             self.create_certificate_request()
         )
-        utils.send_data(client_socket, data_to_send, 'cert req')
-        data = utils.receive_data(client_socket, 'cert')
+        utils.send_data(self.active_socket, data_to_send, 'cert req')
+        data = utils.receive_data(self.active_socket, 'cert or verification failure')
+        if data == b'verification failed':
+            print('verification failed trying again')
+            utils.finish_connection(self.active_socket)
+            self.send_request_to_ca()
+            return
         self.my_certificate = utils.crypto.load_certificate(utils.PEM_FORMAT, data)
-        utils.finish_connection(client_socket)
+        utils.finish_connection(self.active_socket)
 
     def exchange_certificates_and_keys(self):
         """

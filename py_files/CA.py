@@ -12,10 +12,11 @@ class CA:
     def create_certificate_from_request(self, request):
         """
             before we create the certificate from the certificate request we fill the CA's info as a subject
+            verify() throws crypto.Error if signatures aren't the same
             :param request: certificate request
             :return: returns created certificate
         """
-        self.verify_certificate_request(request)
+        request.verify(request.get_pubkey())
         cert = utils.crypto.X509()
         cert.set_serial_number(1000)
         cert.get_subject().countryName = 'CZ'
@@ -33,22 +34,22 @@ class CA:
         self.list_of_certs.append(cert)
         return cert
 
-    def verify_certificate_request(self, request):
-        """
-            TODO
-        """
-        pass
-
     def receive_certificate_request(self, port):
         """
             first we establish connection, in an infinite while loop we listen for message telling us what to do
+            if the verification fails communicate it to the host and try again
             :param port: port to listen on
         """
         connection = utils.start_receiving(port)
         while True:
             data = connection.recv(2048)
             if data == b'sending cert request':
-                self.send_certificate(connection)
+                try:
+                    self.send_certificate(connection)
+                except utils.crypto.Error:
+                    print('Verification of the request failed ')
+                    utils.send_data(connection, b'verification failed', 'verification failed')
+                    continue
             if data == b'fin':
                 utils.send_acknowledgement(connection)
                 print('ending connection, the same port can be used again')
