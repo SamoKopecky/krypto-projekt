@@ -1,5 +1,6 @@
 import utils
 import os
+import sys
 
 
 class User:
@@ -14,12 +15,15 @@ class User:
         self.aes_iv = bytes()
         self.cipher = utils.Cipher
         self.my_certificate = utils.crypto.X509()
+        self.my_certificate_signature = bytes()
         self.private_key, self.public_key = utils.generate_cryptography_rsa_keys()
         self.ssl_public_key = utils.crypto.PKey.from_cryptography_key(self.public_key)
         self.ssl_private_key = utils.crypto.PKey.from_cryptography_key(self.private_key)
         self.other_certificate = utils.crypto.X509()
-        self.other_public_key = utils.rsa.RSAPublicKey
+        self.other_certificate_signature = bytes()
         self.active_socket = utils.socket.socket()
+        self.ca_port = int
+        self.ca_public_key = utils.rsa.RSAPublicKey
         self.name = input('enter your name : ')
         self.received_messages = []
 
@@ -47,20 +51,21 @@ class User:
             that it can be sent and then we send it and then we close the connection with CA
             if the verification failed try again
         """
-        self.active_socket = utils.start_sending()
+        self.active_socket, self.ca_port = utils.start_sending(None, True)
         utils.send_data(self.active_socket, b'sending cert request', 'request to start communication')
         data_to_send = utils.crypto.dump_certificate_request(
             utils.PEM_FORMAT,
             self.create_certificate_request()
         )
         utils.send_data(self.active_socket, data_to_send, 'cert req')
-        data = utils.receive_data(self.active_socket, 'cert or verification failure')
-        if data == b'verification failed':
+        first_data = utils.receive_data(self.active_socket, 'cert or verification failure')
+        if first_data == b'verification failed':
             print('verification failed trying again')
             utils.finish_connection(self.active_socket)
             self.send_request_to_ca()
             return
-        self.my_certificate = utils.crypto.load_certificate(utils.PEM_FORMAT, data)
+        self.my_certificate_signature = utils.receive_data(self.active_socket, 'signature')
+        self.my_certificate = utils.crypto.load_certificate(utils.PEM_FORMAT, first_data)
         utils.finish_connection(self.active_socket)
 
     def exchange_certificates_and_keys(self):
@@ -69,24 +74,52 @@ class User:
         """
         state = input('listen or send : ')
         if state == 'listen':
-            self.receiving_certificate()
+            self.finish_exchange_of_certificates()
             self.receiving_aes_key()
             self._create_aes_cipher()
         if state == 'send':
-            self.sending_certificate()
+            self.start_exchange_of_certificates()
             self.sending_aes_key()
             self._create_aes_cipher()
 
-    def receiving_certificate(self):
+    def finish_exchange_of_certificates(self):
         """
             first the user receives the certificate and then he sends his certificate
         """
-        connection = utils.start_receiving(None)
-        self.active_socket = connection
-        data = utils.receive_data(self.active_socket, 'cert')
-        self.other_certificate = utils.crypto.load_certificate(utils.PEM_FORMAT, data)
-        data_to_send = utils.crypto.dump_certificate(utils.PEM_FORMAT, self.my_certificate)
-        utils.send_data(self.active_socket, data_to_send, 'my cert')
+        self.active_socket = utils.start_receiving(None)
+        self.receive_and_verify_certificate()
+        self.send_signature_and_certificate()
+
+    def receive_and_verify_certificate(self):
+        """
+            certificate is received with the signature, if the verification is false an exception is thrown
+            and program exists
+        """
+        self.get_ca_public_key()
+        data_certificate = utils.receive_data(self.active_socket, 'certificate')
+        data_signature = utils.receive_data(self.active_socket, 'signature')
+        certificate = utils.crypto.load_certificate(utils.PEM_FORMAT, data_certificate)
+        try:
+            utils.rsa_verify(self.ca_public_key, data_signature, data_certificate)
+        except Exception:
+            print('verification failed exiting program')
+            sys.exit()
+
+        self.other_certificate = certificate
+        self.other_certificate_signature = data_signature
+
+    def get_ca_public_key(self):
+        """
+            requests the CA public key
+        """
+        ca_socket = utils.start_sending(self.ca_port, False)
+        utils.send_data(ca_socket, b'requesting your public key', 'request for public key')
+        data = utils.receive_data(ca_socket, 'ca public key')
+        self.ca_public_key = utils.serialization.load_pem_public_key(
+            data,
+            utils.default_backend()
+        )
+        utils.finish_connection(ca_socket)
 
     def receiving_aes_key(self):
         """
@@ -97,15 +130,21 @@ class User:
         self.aes_iv = utils.receive_data(self.active_socket, 'aes iv')
         self.aes_key = utils.rsa_decrypt(key, self.private_key)
 
-    def sending_certificate(self):
+    def start_exchange_of_certificates(self):
         """
             same thing as receive but reverse, user sends then listens for certificate
         """
-        self.active_socket = utils.start_sending()
-        data_to_send = utils.crypto.dump_certificate(utils.PEM_FORMAT, self.my_certificate)
-        utils.send_data(self.active_socket, data_to_send, 'my cert')
-        data = utils.receive_data(self.active_socket, 'cert')
-        self.other_certificate = utils.crypto.load_certificate(utils.PEM_FORMAT, data)
+        self.active_socket = utils.start_sending(None, False)
+        self.send_signature_and_certificate()
+        self.receive_and_verify_certificate()
+
+    def send_signature_and_certificate(self):
+        """
+            the certificate and the signature is sent
+        """
+        pem_certificate = utils.crypto.dump_certificate(utils.PEM_FORMAT, self.my_certificate)
+        utils.send_data(self.active_socket, pem_certificate, 'certificate')
+        utils.send_data(self.active_socket, self.my_certificate_signature, 'signature')
 
     def sending_aes_key(self):
         """
@@ -115,8 +154,8 @@ class User:
             iv is 16 bytes long and can be sent in plain text
         """
         self.aes_key, self.aes_iv = os.urandom(32), os.urandom(16)
-        self.other_public_key = utils.convert_key_from_ssl_to_cryptography(self.other_certificate.get_pubkey())
-        data_to_send = utils.rsa_encrypt(self.aes_key, self.other_public_key)
+        other_public_key = utils.from_ssl_to_cryptography(self.other_certificate.get_pubkey(), False)
+        data_to_send = utils.rsa_encrypt(self.aes_key, other_public_key)
         utils.send_data(self.active_socket, data_to_send, 'aes key')
         utils.send_data(self.active_socket, self.aes_iv, 'aes iv')
 
@@ -168,7 +207,7 @@ class User:
 
 def use_user():
     """
-        first function that is ran when user.py is ran
+        first function that is ran when User.py is ran
     """
     user = User()
     user.send_request_to_ca()

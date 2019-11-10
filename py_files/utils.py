@@ -39,13 +39,20 @@ def generate_openssl_rsa_keys():
     return private_key, public_key
 
 
-def convert_key_from_ssl_to_cryptography(pkey: crypto.PKey):
+def from_ssl_to_cryptography(pkey: crypto.PKey, private_key: bool):
     """
-        convert pyopenssl RSA key to PEM format then we import it to cryptography RSA public key
+        convert pyopenssl RSA key to PEM format then we import it to cryptography RSA public key/private key
         from PEM format
+        :param private_key: whether it is a private key
         :param pkey: public key
         :return: RSA key from cryptography library
     """
+    if private_key:
+        return serialization.load_pem_private_key(
+            crypto.dump_privatekey(PEM_FORMAT, pkey),
+            None,
+            default_backend()
+        )
     return serialization.load_pem_public_key(
         crypto.dump_publickey(PEM_FORMAT, pkey),
         default_backend(),
@@ -101,16 +108,19 @@ def start_receiving(port):
     return connection
 
 
-def start_sending():
+def start_sending(port, return_port: bool):
     """
-        function for initializing a connection of the sender
-        same initialization of the socket as start_receiving
+        function for initializing a connection of the sender same initialization of the
+        socket as start_receiving functions
         :return: socket of the host we connected to
     """
-    port = int(input('choose port to send to : '))
+    if port is None:
+        port = int(input('choose port to listen to : '))
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     client_socket.connect((LOCALHOST, port))
+    if return_port is True:
+        return client_socket, port
     return client_socket
 
 
@@ -173,6 +183,40 @@ def rsa_decrypt(cipher_text, private_key):
             hashes.SHA256(),
             None
         )
+    )
+
+
+def rsa_sign(private_key, message):
+    """
+        sign a message
+        :param private_key: private keu to sign with
+        :param message: messeage to be signed
+    """
+    return private_key.sign(
+        message,
+        padding.PSS(
+            padding.MGF1(hashes.SHA256()),
+            padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+
+
+def rsa_verify(public_key: rsa.RSAPublicKey, signature, message):
+    """
+        verify a signature
+        :param public_key: public key to verify with
+        :param signature: signature of the message
+        :param message: message to compare with
+    """
+    public_key.verify(
+        signature,
+        message,
+        padding.PSS(
+            padding.MGF1(hashes.SHA256()),
+            padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
     )
 
 
