@@ -71,7 +71,7 @@ class CA:
         cert_req = utils.crypto.load_certificate_request(utils.PEM_FORMAT, data)
         cert = self.create_certificate_from_request(cert_req)
         pem_cert = utils.crypto.dump_certificate(utils.PEM_FORMAT, cert)
-        signature = utils.rsa_sign(utils.from_ssl_to_cryptography(self.private_key, True), pem_cert)
+        signature = utils.rsa_sign(utils.from_ssl_to_cryptography(self.private_key), pem_cert)
         utils.send_data(connection, pem_cert, 'cert')
         utils.send_data(connection, signature, 'signature')
         self.dictionary_of_certs[cert] = signature

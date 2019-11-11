@@ -1,14 +1,11 @@
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives import padding as sym_padding
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from OpenSSL import crypto
 import socket
 
-"""
-    constants
-"""
+# constants
 LOCALHOST = '127.0.0.1'
 PEM_FORMAT = crypto.FILETYPE_PEM
 
@@ -39,7 +36,7 @@ def generate_openssl_rsa_keys():
     return private_key, public_key
 
 
-def from_ssl_to_cryptography(pkey: crypto.PKey, private_key: bool):
+def from_ssl_to_cryptography(pkey: crypto.PKey, private_key=True):
     """
         convert pyopenssl RSA key to PEM format then we import it to cryptography RSA public key/private key
         from PEM format
@@ -87,7 +84,7 @@ def finish_connection(active_socket):
     active_socket.close()
 
 
-def start_receiving(port):
+def start_receiving(port=0):
     """
         function that start initializes connection of the receiver
         socket.AF_INET is the equivalent of IPV4
@@ -97,7 +94,7 @@ def start_receiving(port):
         :param port: port number
         :return: randomly generated socket that the user was assigned
     """
-    if port is None:
+    if port is 0:
         port = int(input('choose port to listen to : '))
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -108,13 +105,13 @@ def start_receiving(port):
     return connection
 
 
-def start_sending(port, return_port: bool):
+def start_sending(port=0, return_port=False):
     """
         function for initializing a connection of the sender same initialization of the
         socket as start_receiving functions
         :return: socket of the host we connected to
     """
-    if port is None:
+    if port is 0:
         port = int(input('choose port to listen to : '))
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -202,7 +199,7 @@ def rsa_sign(private_key, message):
     )
 
 
-def rsa_verify(public_key: rsa.RSAPublicKey, signature, message):
+def rsa_verify(public_key, signature, message):
     """
         verify a signature
         :param public_key: public key to verify with

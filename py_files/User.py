@@ -1,6 +1,8 @@
-import utils
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import os
 import sys
+import utils
 
 
 class User:
@@ -13,12 +15,12 @@ class User:
         """
         self.aes_key = bytes()
         self.aes_iv = bytes()
-        self.cipher = utils.Cipher
-        self.my_certificate = utils.crypto.X509()
-        self.my_certificate_signature = bytes()
         self.private_key, self.public_key = utils.generate_cryptography_rsa_keys()
         self.ssl_public_key = utils.crypto.PKey.from_cryptography_key(self.public_key)
         self.ssl_private_key = utils.crypto.PKey.from_cryptography_key(self.private_key)
+        self.cipher = Cipher
+        self.my_certificate = utils.crypto.X509()
+        self.my_certificate_signature = bytes()
         self.other_certificate = utils.crypto.X509()
         self.other_certificate_signature = bytes()
         self.active_socket = utils.socket.socket()
@@ -51,7 +53,7 @@ class User:
             that it can be sent and then we send it and then we close the connection with CA
             if the verification failed try again
         """
-        self.active_socket, self.ca_port = utils.start_sending(None, True)
+        self.active_socket, self.ca_port = utils.start_sending(0, True)
         utils.send_data(self.active_socket, b'sending cert request', 'request to start communication')
         data_to_send = utils.crypto.dump_certificate_request(
             utils.PEM_FORMAT,
@@ -86,7 +88,7 @@ class User:
         """
             first the user receives the certificate and then he sends his certificate
         """
-        self.active_socket = utils.start_receiving(None)
+        self.active_socket = utils.start_receiving()
         self.receive_and_verify_certificate()
         self.send_signature_and_certificate()
 
@@ -101,7 +103,7 @@ class User:
         certificate = utils.crypto.load_certificate(utils.PEM_FORMAT, data_certificate)
         try:
             utils.rsa_verify(self.ca_public_key, data_signature, data_certificate)
-        except Exception:
+        except InvalidSignature:
             print('verification failed exiting program')
             sys.exit()
 
@@ -112,7 +114,7 @@ class User:
         """
             requests the CA public key
         """
-        ca_socket = utils.start_sending(self.ca_port, False)
+        ca_socket = utils.start_sending(self.ca_port)
         utils.send_data(ca_socket, b'requesting your public key', 'request for public key')
         data = utils.receive_data(ca_socket, 'ca public key')
         self.ca_public_key = utils.serialization.load_pem_public_key(
@@ -134,7 +136,7 @@ class User:
         """
             same thing as receive but reverse, user sends then listens for certificate
         """
-        self.active_socket = utils.start_sending(None, False)
+        self.active_socket = utils.start_sending()
         self.send_signature_and_certificate()
         self.receive_and_verify_certificate()
 
@@ -165,10 +167,10 @@ class User:
         """
         if self.aes_key is None or self.aes_iv is None:
             raise ValueError('null value')
-        self.cipher = utils.Cipher(utils.algorithms.AES(self.aes_key),
-                                   utils.modes.CBC(self.aes_iv),
-                                   utils.default_backend()
-                                   )
+        self.cipher = Cipher(algorithms.AES(self.aes_key),
+                             modes.CBC(self.aes_iv),
+                             utils.default_backend()
+                             )
 
     def send_message(self):
         """
