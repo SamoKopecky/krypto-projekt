@@ -1,4 +1,5 @@
 import utils
+import socket
 
 
 class CA:
@@ -7,6 +8,7 @@ class CA:
             generating of RSA keys for CA
         """
         self.private_key, self.public_key = utils.generate_openssl_rsa_keys()
+        self.connection = socket.socket()
         self.dictionary_of_certs = {}
 
     def create_certificate_from_request(self, request):
@@ -19,7 +21,7 @@ class CA:
         """
         request.verify(request.get_pubkey())
         cert = utils.crypto.X509()
-        cert.set_serial_number(1000)
+        cert.set_serial_number(420)
         cert.get_subject().countryName = 'CZ'
         cert.get_subject().stateOrProvinceName = 'Czech Republic'
         cert.get_subject().localityName = 'Brno'
@@ -40,49 +42,47 @@ class CA:
             if the verification of c_request fails communicate it to the host and try again
             :param port: port to listen on
         """
-        connection = utils.start_receiving(port)
+        self.connection = utils.start_receiving(port)
         while True:
-            data = connection.recv(2048)
+            data = self.connection.recv(2048)
             if data == b'sending cert request':
                 try:
-                    self.send_certificate(connection)
+                    self.send_certificate()
                 except utils.crypto.Error:
                     print('Verification of the request failed ')
-                    utils.send_data(connection, b'verification failed', 'verification failed')
+                    utils.send_data(self.connection, b'verification failed', 'verification failed')
                     continue
             if data == b'requesting your public key':
-                utils.send_acknowledgement(connection)
-                self.send_public_key(connection)
+                self.send_public_key()
             if data == b'fin':
-                utils.send_acknowledgement(connection)
+                utils.send_acknowledgement(self.connection)
                 print('ending connection, the same port can be used again')
-                connection.close()
+                self.connection.close()
                 break
 
-    def send_certificate(self, connection):
+    def send_certificate(self):
         """
             first we convert the certificate request form PEM to x509Req format, create the certificate, sign it and
             send the certificate and the signature back to the user
-            :param connection: port to send data with
         """
         print('ready to accept, sending ack')
-        utils.send_acknowledgement(connection)
-        data = utils.receive_data(connection, 'cert req')
+        utils.send_acknowledgement(self.connection)
+        data = utils.receive_data(self.connection, 'cert req')
         cert_req = utils.crypto.load_certificate_request(utils.PEM_FORMAT, data)
         cert = self.create_certificate_from_request(cert_req)
         pem_cert = utils.crypto.dump_certificate(utils.PEM_FORMAT, cert)
         signature = utils.rsa_sign(utils.from_ssl_to_cryptography(self.private_key), pem_cert)
-        utils.send_data(connection, pem_cert, 'cert')
-        utils.send_data(connection, signature, 'signature')
+        utils.send_data(self.connection, pem_cert, 'cert')
+        utils.send_data(self.connection, signature, 'signature')
         self.dictionary_of_certs[cert] = signature
 
-    def send_public_key(self, connection):
+    def send_public_key(self):
         """
             send CA public key in PEM format
-            :param connection: socket to send to
         """
+        utils.send_acknowledgement(self.connection)
         pem_public_key = utils.crypto.dump_publickey(utils.PEM_FORMAT, self.public_key)
-        utils.send_data(connection, pem_public_key, 'public key')
+        utils.send_data(self.connection, pem_public_key, 'public key')
 
 
 def use_ca():

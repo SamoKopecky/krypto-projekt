@@ -3,7 +3,9 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives import padding as sym_padding
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from OpenSSL import crypto
+import select
 import socket
+import sys
 
 # constants
 LOCALHOST = '127.0.0.1'
@@ -58,11 +60,19 @@ def from_ssl_to_cryptography(pkey: crypto.PKey, private_key=True):
 
 def wait_for_acknowledgement(active_socket):
     """
-        wait for a n acknowledgement from the other host/server
+        wait for an acknowledgement from the other host/server if it doesn't come in 5 seconds
+        or it doesn't match the acknowledgement message program exists
         :param active_socket: active socket of the host
     """
-    while active_socket.recv(2048) != b'ack':
-        pass
+    ready = select.select([active_socket], [], [], 5)  # last parameter is timout in seconds
+    data = bytes(0)
+    if ready[0]:
+        data = active_socket.recv(2048)
+    if data == b'ack':
+        return
+    else:
+        print('acknowledgement wasn\'t received exiting')
+        sys.exit()
 
 
 def send_acknowledgement(active_socket):
