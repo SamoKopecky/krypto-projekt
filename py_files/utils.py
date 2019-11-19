@@ -1,16 +1,19 @@
+from cryptography.exceptions import InvalidSignature
+from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives import padding as sym_padding
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
-from OpenSSL import crypto
-import socket
+from cryptography.x509.oid import NameOID
 
-"""
-    constants
-"""
+import os
+import select
+import socket
+import sys
+
+# constants
 LOCALHOST = '127.0.0.1'
-PEM_FORMAT = crypto.FILETYPE_PEM
+PEM = serialization.Encoding.PEM
 
 
 def generate_cryptography_rsa_keys():
@@ -27,38 +30,21 @@ def generate_cryptography_rsa_keys():
     return private_key, private_key.public_key()
 
 
-def generate_openssl_rsa_keys():
-    """
-        generating RSA key pair from pyopenssl library, we use these for certificates
-        :return: private and public keys
-    """
-    private_key = crypto.PKey()
-    private_key.generate_key(crypto.TYPE_RSA, 2048)
-    pem_pkey = crypto.dump_publickey(PEM_FORMAT, private_key)
-    public_key = crypto.load_publickey(PEM_FORMAT, pem_pkey)
-    return private_key, public_key
-
-
-def convert_key_from_ssl_to_cryptography(pkey: crypto.PKey):
-    """
-        convert pyopenssl RSA key to PEM format then we import it to cryptography RSA public key
-        from PEM format
-        :param pkey: public key
-        :return: RSA key from cryptography library
-    """
-    return serialization.load_pem_public_key(
-        crypto.dump_publickey(PEM_FORMAT, pkey),
-        default_backend(),
-    )
-
-
 def wait_for_acknowledgement(active_socket):
     """
-        wait for a n acknowledgement from the other host/server
+        wait for an acknowledgement from the other host/server if it doesn't come in 5 seconds
+        or it doesn't match the acknowledgement message program exists
         :param active_socket: active socket of the host
     """
-    while active_socket.recv(2048) != b'ack':
-        pass
+    ready = select.select([active_socket], [], [], 5)  # last parameter is timout in seconds
+    data = bytes(0)
+    if ready[0]:
+        data = active_socket.recv(2048)
+    if data == b'ack':
+        return
+    else:
+        print('acknowledgement wasn\'t received exiting')
+        sys.exit()
 
 
 def send_acknowledgement(active_socket):
@@ -80,7 +66,7 @@ def finish_connection(active_socket):
     active_socket.close()
 
 
-def start_receiving(port):
+def start_receiving(port=0):
     """
         function that start initializes connection of the receiver
         socket.AF_INET is the equivalent of IPV4
@@ -90,7 +76,7 @@ def start_receiving(port):
         :param port: port number
         :return: randomly generated socket that the user was assigned
     """
-    if port is None:
+    if port is 0:
         port = int(input('choose port to listen to : '))
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -101,16 +87,19 @@ def start_receiving(port):
     return connection
 
 
-def start_sending():
+def start_sending(port=0, return_port=False):
     """
-        function for initializing a connection of the sender
-        same initialization of the socket as start_receiving
+        function for initializing a connection of the sender same initialization of the
+        socket as start_receiving functions
         :return: socket of the host we connected to
     """
-    port = int(input('choose port to send to : '))
+    if port is 0:
+        port = int(input('choose port to listen to : '))
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     client_socket.connect((LOCALHOST, port))
+    if return_port is True:
+        return client_socket, port
     return client_socket
 
 
@@ -162,8 +151,8 @@ def rsa_decrypt(cipher_text, private_key):
     """
         function for decrypting with RSA
         same algorithms used for padding and hashes as encryption
-        :param cipher_text:
-        :param private_key:
+        :param cipher_text: data to decrypt
+        :param private_key: key to decrypt with
         :return: decrypted data
     """
     return private_key.decrypt(
@@ -205,3 +194,26 @@ def aes_decrypt(cipher, c_data: bytes):
     unpaded_data = unpadder.update(data)
     unpaded_data += unpadder.finalize()
     return unpaded_data
+
+
+def write_to_file(data, file_name):
+    """
+        just a generic function that writes bytes to a file
+        :param data: data to write in bytes
+        :param file_name: name of the file to write to
+    """
+    file = open(file_name, 'wb')
+    file.write(data)
+    file.close()
+
+
+def get_certs_dir(file_name):
+    """
+        first we get the directory in which this file is located
+        then we move 1 folder down and return the modified path
+        :param file_name: name of the file
+        :return: returns a string append by the file name
+    """
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    dirs = file_dir.split('/')[:-1]
+    return '/'.join(dirs) + '/certs/{}'.format(file_name)
