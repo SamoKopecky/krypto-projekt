@@ -2,14 +2,16 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives import padding as sym_padding
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
-from OpenSSL import crypto
+from cryptography.exceptions import InvalidSignature
+from cryptography import x509
+from cryptography.x509.oid import NameOID
 import select
 import socket
 import sys
 
 # constants
 LOCALHOST = '127.0.0.1'
-PEM_FORMAT = crypto.FILETYPE_PEM
+PEM = serialization.Encoding.PEM
 
 
 def generate_cryptography_rsa_keys():
@@ -24,38 +26,6 @@ def generate_cryptography_rsa_keys():
         backend=default_backend()
     )
     return private_key, private_key.public_key()
-
-
-def generate_openssl_rsa_keys():
-    """
-        generating RSA key pair from pyopenssl library, we use these for certificates
-        :return: private and public keys
-    """
-    private_key = crypto.PKey()
-    private_key.generate_key(crypto.TYPE_RSA, 2048)
-    pem_pkey = crypto.dump_publickey(PEM_FORMAT, private_key)
-    public_key = crypto.load_publickey(PEM_FORMAT, pem_pkey)
-    return private_key, public_key
-
-
-def from_ssl_to_cryptography(pkey: crypto.PKey, private_key=True):
-    """
-        convert pyopenssl RSA key to PEM format then we import it to cryptography RSA public key/private key
-        from PEM format
-        :param private_key: whether it is a private key
-        :param pkey: public key
-        :return: RSA key from cryptography library
-    """
-    if private_key:
-        return serialization.load_pem_private_key(
-            crypto.dump_privatekey(PEM_FORMAT, pkey),
-            None,
-            default_backend()
-        )
-    return serialization.load_pem_public_key(
-        crypto.dump_publickey(PEM_FORMAT, pkey),
-        default_backend(),
-    )
 
 
 def wait_for_acknowledgement(active_socket):
@@ -190,40 +160,6 @@ def rsa_decrypt(cipher_text, private_key):
             hashes.SHA256(),
             None
         )
-    )
-
-
-def rsa_sign(private_key, message):
-    """
-        sign a message
-        :param private_key: private keu to sign with
-        :param message: messeage to be signed
-    """
-    return private_key.sign(
-        message,
-        padding.PSS(
-            padding.MGF1(hashes.SHA256()),
-            padding.PSS.MAX_LENGTH
-        ),
-        hashes.SHA256()
-    )
-
-
-def rsa_verify(public_key, signature, message):
-    """
-        verify a signature
-        :param public_key: public key to verify with
-        :param signature: signature of the message
-        :param message: message to compare with
-    """
-    public_key.verify(
-        signature,
-        message,
-        padding.PSS(
-            padding.MGF1(hashes.SHA256()),
-            padding.PSS.MAX_LENGTH
-        ),
-        hashes.SHA256()
     )
 
 
