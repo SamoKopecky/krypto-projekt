@@ -16,7 +16,7 @@ LOCALHOST = '127.0.0.1'
 PEM = serialization.Encoding.PEM
 
 
-def generate_cryptography_rsa_keys():
+def generate_rsa_keys():
     """
         generating RSA key pair from cryptography library, we use these for signing/verifying and
         encrypting/decrypting
@@ -62,7 +62,7 @@ def finish_connection(active_socket):
     """
     active_socket.send(b'fin')
     wait_for_acknowledgement(active_socket)
-    print('ending communication')
+    print('ending communication\n')
     active_socket.close()
 
 
@@ -76,6 +76,7 @@ def start_receiving(port=0):
         :param port: port number
         :return: randomly generated socket that the user was assigned
     """
+
     if port is 0:
         port = int(input('choose port to listen to : '))
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -83,7 +84,7 @@ def start_receiving(port=0):
     server_socket.bind((LOCALHOST, port))
     server_socket.listen()
     connection, address = server_socket.accept()
-    print('connected to {}'.format(address))
+    print('\nconnected to {}'.format(address))
     return connection
 
 
@@ -94,7 +95,8 @@ def start_sending(port=0, return_port=False):
         :return: socket of the host we connected to
     """
     if port is 0:
-        port = int(input('choose port to listen to : '))
+        port = int(input('choose port to send to : '))
+        print('\n')
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     client_socket.connect((LOCALHOST, port))
@@ -110,7 +112,7 @@ def send_data(user_socket, data, string):
         :param data: data to send
         :param string: what the host is sending
     """
-    print('sending {}'.format(string))
+    print('sending : {}'.format(string))
     user_socket.send(data)
     wait_for_acknowledgement(user_socket)
 
@@ -123,7 +125,7 @@ def receive_data(user_socket, string):
         :return: returns the received data
     """
     data = user_socket.recv(2048)
-    print('{} received'.format(string))
+    print('receiving : {}'.format(string))
     send_acknowledgement(user_socket)
     return data
 

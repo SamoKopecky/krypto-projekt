@@ -23,7 +23,7 @@ class CA:
         """
             generating of RSA keys for CA and outputting the self signed certificate to a file
         """
-        self.private_key, self.public_key = utils.generate_cryptography_rsa_keys()
+        self.private_key, self.public_key = utils.generate_rsa_keys()
         self.ss_certificate = self.create_self_signed_certificate()
         self.connection = socket.socket()
         self.list_of_certs = []

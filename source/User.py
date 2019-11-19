@@ -15,7 +15,7 @@ class User:
         """
         self.aes_key = bytes()
         self.aes_iv = bytes()
-        self.private_key, self.public_key = utils.generate_cryptography_rsa_keys()
+        self.private_key, self.public_key = utils.generate_rsa_keys()
         self.cipher = Cipher
         self.my_certificate = None
         self.other_certificate = None
@@ -53,8 +53,8 @@ class User:
         self.active_socket, self.ca_port = utils.start_sending(0, True)
         utils.send_data(self.active_socket, b'sending cert request', 'request to start communication')
         data_to_send = self.create_certificate_request().public_bytes(utils.PEM)
-        utils.send_data(self.active_socket, data_to_send, 'cert req')
-        received_data = utils.receive_data(self.active_socket, 'cert or verification failure')
+        utils.send_data(self.active_socket, data_to_send, 'certificate request')
+        received_data = utils.receive_data(self.active_socket, 'certificate or verification failure')
         if received_data == b'verification failed':
             print('verification failed trying again')
             utils.finish_connection(self.active_socket)
@@ -68,7 +68,9 @@ class User:
         """
             We decide which user will be sending and listening and then exchange certificates and AES keys
         """
-        state = input('listen or send : ')
+        state = ''
+        while state != 'send' and state != 'listen':
+            state = input('Choose what do to (send/listen): ')
         if state == 'listen':
             self.finish_exchange_of_certificates()
             self.receiving_aes_key()
@@ -188,8 +190,8 @@ class User:
         """
         conversation = True
         while conversation:
-            state = input('choose if you expect to listen or '
-                          'send message or quit(listen/send/quit): ')
+            state = input('choose if you expect to listen, '
+                          'send message or quit (listen/send/quit): ')
             if state == 'listen':
                 self.receive_message()
             if state == 'send':
