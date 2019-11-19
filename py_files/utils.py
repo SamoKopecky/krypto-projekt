@@ -151,8 +151,8 @@ def rsa_decrypt(cipher_text, private_key):
     """
         function for decrypting with RSA
         same algorithms used for padding and hashes as encryption
-        :param cipher_text:
-        :param private_key:
+        :param cipher_text: data to decrypt
+        :param private_key: key to decrypt with
         :return: decrypted data
     """
     return private_key.decrypt(

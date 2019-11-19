@@ -67,17 +67,17 @@ class CA:
         """
         self.connection = utils.start_receiving(port)
         while True:
-            data = self.connection.recv(2048)
-            if data == b'sending cert request':
+            received_data = self.connection.recv(2048)
+            if received_data == b'sending cert request':
                 try:
                     self.send_certificate()
                 except utils.InvalidSignature:
                     print('Verification of the request failed ')
                     utils.send_data(self.connection, b'verification failed', 'verification failed')
                     continue
-            if data == b'requesting your public key':
+            if received_data == b'requesting your public key':
                 self.send_my_certificate()
-            if data == b'fin':
+            if received_data == b'fin':
                 utils.send_acknowledgement(self.connection)
                 print('ending connection, the same port can be used again')
                 self.connection.close()
@@ -90,18 +90,18 @@ class CA:
         """
         print('ready to accept, sending ack')
         utils.send_acknowledgement(self.connection)
-        data = utils.receive_data(self.connection, 'cert req')
-        request = utils.x509.load_pem_x509_csr(data, utils.default_backend())
+        received_data = utils.receive_data(self.connection, 'certificate request')
+        request = utils.x509.load_pem_x509_csr(received_data, utils.default_backend())
         request.public_key().verify(
             request.signature,
             request.tbs_certrequest_bytes,
             utils.padding.PKCS1v15(),
             request.signature_hash_algorithm
         )
-        cert = self.create_certificate_from_request(request)
-        self.list_of_certs.append(cert)
-        pem_cert = cert.public_bytes(utils.PEM)
-        utils.send_data(self.connection, pem_cert, 'cert')
+        certificate = self.create_certificate_from_request(request)
+        self.list_of_certs.append(certificate)
+        pem_certificate = certificate.public_bytes(utils.PEM)
+        utils.send_data(self.connection, pem_certificate, 'certificate')
 
     def send_my_certificate(self):
         """
