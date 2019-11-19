@@ -1,6 +1,7 @@
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
 import os
 import sys
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import utils
 
 
@@ -204,6 +205,9 @@ def use_user():
     user = User()
     user.send_request_to_ca()
     user.get_ca_certificate()
+    utils.write_to_file(user.my_certificate.public_bytes(utils.PEM),
+                        utils.get_certs_dir('{}-cert.pem').format(user.name)
+                        )
     user.exchange_certificates_and_keys()
     user.start_conversation()
 

@@ -21,12 +21,13 @@ def fill_certificate_name():
 class CA:
     def __init__(self):
         """
-            generating of RSA keys for CA
+            generating of RSA keys for CA and outputting the self signed certificate to a file
         """
         self.private_key, self.public_key = utils.generate_cryptography_rsa_keys()
         self.ss_certificate = self.create_self_signed_certificate()
         self.connection = socket.socket()
         self.list_of_certs = []
+        utils.write_to_file(self.ss_certificate.public_bytes(utils.PEM), utils.get_certs_dir('ca-cert.pem'))
 
     def create_certificate_from_request(self, request: utils.x509.CertificateSigningRequest):
         """

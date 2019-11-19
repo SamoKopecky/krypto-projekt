@@ -1,10 +1,12 @@
+from cryptography.exceptions import InvalidSignature
+from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives import padding as sym_padding
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
-from cryptography.exceptions import InvalidSignature
-from cryptography import x509
 from cryptography.x509.oid import NameOID
+
+import os
 import select
 import socket
 import sys
@@ -192,3 +194,26 @@ def aes_decrypt(cipher, c_data: bytes):
     unpaded_data = unpadder.update(data)
     unpaded_data += unpadder.finalize()
     return unpaded_data
+
+
+def write_to_file(data, file_name):
+    """
+        just a generic function that writes bytes to a file
+        :param data: data to write in bytes
+        :param file_name: name of the file to write to
+    """
+    file = open(file_name, 'wb')
+    file.write(data)
+    file.close()
+
+
+def get_certs_dir(file_name):
+    """
+        first we get the directory in which this file is located
+        then we move 1 folder down and return the modified path
+        :param file_name: name of the file
+        :return: returns a string append by the file name
+    """
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    dirs = file_dir.split('/')[:-1]
+    return '/'.join(dirs) + '/certs/{}'.format(file_name)
