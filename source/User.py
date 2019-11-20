@@ -59,7 +59,7 @@ class User:
             print('verification failed trying again')
             utils.finish_connection(self.active_socket)
             self.send_request_to_ca()
-            return
+            return                                                                                                                                                                                              
         print('certificate was received successfully')
         self.my_certificate = utils.x509.load_pem_x509_certificate(received_data, utils.default_backend())
         utils.finish_connection(self.active_socket)
