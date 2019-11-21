@@ -6,6 +6,7 @@ from cryptography.hazmat.primitives import padding as sym_padding
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.x509.oid import NameOID
 
+import platform
 import os
 import select
 import socket
@@ -77,7 +78,7 @@ def start_receiving(port=0):
         :return: randomly generated socket that the user was assigned
     """
 
-    if port is 0:
+    if port == 0:
         port = int(input('choose port to listen to : '))
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -94,13 +95,13 @@ def start_sending(port=0, return_port=False):
         socket as start_receiving functions
         :return: socket of the host we connected to
     """
-    if port is 0:
+    if port == 0:
         port = int(input('choose port to send to : '))
         print('\n')
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     client_socket.connect((LOCALHOST, port))
-    if return_port is True:
+    if return_port:
         return client_socket, port
     return client_socket
 
@@ -204,9 +205,8 @@ def write_to_file(data, file_name):
         :param data: data to write in bytes
         :param file_name: name of the file to write to
     """
-    file = open(file_name, 'wb')
-    file.write(data)
-    file.close()
+    with open(file_name, 'wb') as file:
+        file.write(data)
 
 
 def get_certs_dir(file_name):
@@ -216,6 +216,15 @@ def get_certs_dir(file_name):
         :param file_name: name of the file
         :return: returns a string append by the file name
     """
-    file_dir = os.path.dirname(os.path.realpath(__file__))
-    dirs = file_dir.split('/')[:-1]
-    return '/'.join(dirs) + '/certs/{}'.format(file_name)
+    current_os = platform.system()
+    if current_os == 'Windows':
+        file_dir = os.getcwd()
+        dirs = file_dir.split('\\')[:-1]
+        return '\\'.join(dirs) + '\\certs\\{}'.format(file_name)
+    elif current_os == 'Linux':
+        file_dir = os.path.dirname(os.path.realpath(__file__))
+        dirs = file_dir.split('/')[:-1]
+        return '/'.join(dirs) + '/certs/{}'.format(file_name)
+    else:
+        print('unknown OS exiting')
+        sys.exit()

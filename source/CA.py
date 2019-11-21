@@ -38,7 +38,7 @@ class CA:
         now = datetime.datetime.utcnow()
         subject_name = request.subject
         issuer_name = fill_certificate_name()
-        certificate = utils.x509.CertificateBuilder() \
+        return utils.x509.CertificateBuilder() \
             .subject_name(subject_name) \
             .issuer_name(issuer_name) \
             .public_key(request.public_key()) \
@@ -46,7 +46,6 @@ class CA:
             .not_valid_before(now) \
             .not_valid_after(now + datetime.timedelta(days=1)) \
             .sign(self.private_key, utils.hashes.SHA256(), utils.default_backend())
-        return certificate
 
     def create_self_signed_certificate(self):
         """
