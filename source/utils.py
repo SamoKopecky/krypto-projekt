@@ -199,14 +199,24 @@ def aes_decrypt(cipher, c_data: bytes):
     return unpaded_data
 
 
-def write_to_file(data, file_name):
+def write_to_file(data, file_path):
     """
         just a generic function that writes bytes to a file
         :param data: data to write in bytes
-        :param file_name: name of the file to write to
+        :param file_path: path to the file to write to
     """
-    with open(file_name, 'wb') as file:
+    with open(file_path, 'wb') as file:
         file.write(data)
+
+
+def read_file(file_path):
+    """
+        reads the contents of a file
+        :param file_path: file path to the file
+        :return: read data
+    """
+    with open(file_path, 'r') as file:
+        return file.read()
 
 
 def get_certs_dir(file_name):

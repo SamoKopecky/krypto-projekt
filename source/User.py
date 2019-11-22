@@ -59,7 +59,7 @@ class User:
             print('verification failed trying again')
             utils.finish_connection(self.active_socket)
             self.send_request_to_ca()
-            return                                                                                                                                                                                              
+            return
         print('certificate was received successfully')
         self.my_certificate = utils.x509.load_pem_x509_certificate(received_data, utils.default_backend())
         utils.finish_connection(self.active_socket)
@@ -165,22 +165,31 @@ class User:
                              utils.default_backend()
                              )
 
-    def send_message(self):
+    def send_data(self):
         """
-            method where you input some message a then encrypt it and send
+            method for sending encrypted data either from a file or from an input
         """
+        print('if you want to send a file input a "file:absolute_file_path" (example = file:/etc/my_file.txt)\n')
         message = input('input your message: ')
+        if message[:5] == 'file:':
+            message = utils.read_file(message[5:])
         c_message = utils.aes_encrypt(self.cipher, bytes(message, 'utf-8'))
         utils.send_data(self.active_socket, c_message, 'encrypted message')
 
-    def receive_message(self):
+    def receive_data(self):
         """
-            this method is for receiving message and then decrypting it and then storing it
-            in list of received message
+            this method is for receiving encrypted data and then decrypting it and storing it
+            in list of received message or a file
         """
         c_message = utils.receive_data(self.active_socket, 'encrypted message')
         message = utils.aes_decrypt(self.cipher, c_message)
-        print(message.decode())
+        print('do you want to write the message to a file ? if so input a "file:absolute_file_path" (example = '
+              'file:/etc/my_file.txt) if not type anything else \n')
+        choice = input('input your choice: ')
+        if choice[:5] == 'file:':
+            utils.write_to_file(message, choice[5:])
+        else:
+            print(message.decode())
         self.received_messages.append(message.decode())
 
     def start_conversation(self):
@@ -193,9 +202,9 @@ class User:
             state = input('choose if you expect to listen, '
                           'send message or quit (listen/send/quit): ')
             if state == 'listen':
-                self.receive_message()
+                self.receive_data()
             if state == 'send':
-                self.send_message()
+                self.send_data()
             if state == 'quit':
                 conversation = False
 
