@@ -66,12 +66,12 @@ class User:
 
     def exchange_certificates_and_keys(self):
         """
-            We decide which user will be sending and listening and then exchange certificates and AES keys
+            We decide which user will be sending and receiving and then exchange certificates and AES key
         """
         state = ''
-        while state != 'send' and state != 'listen':
-            state = input('Choose what do to (send/listen): ')
-        if state == 'listen':
+        while state != 'send' and state != 'receive':
+            state = input('Choose what do to (send/receive): ')
+        if state == 'receive':
             self.finish_exchange_of_certificates()
             self.receiving_aes_key()
             self._create_aes_cipher()
@@ -95,12 +95,7 @@ class User:
         received_data = utils.receive_data(self.active_socket, 'certificate')
         certificate = utils.x509.load_pem_x509_certificate(received_data, utils.default_backend())
         try:
-            self.ca_certificate.public_key().verify(
-                certificate.signature,
-                certificate.tbs_certificate_bytes,
-                utils.padding.PKCS1v15(),
-                certificate.signature_hash_algorithm
-            )
+            utils.rsa_verify_certificate(self.ca_certificate, certificate)
         except utils.InvalidSignature:
             print('verification failed exiting program')
             sys.exit()
@@ -128,7 +123,7 @@ class User:
 
     def start_exchange_of_certificates(self):
         """
-            same thing as receive but reverse, user sends then listens for certificate
+            same thing as receive but reverse, user sends then receives the certificate
         """
         self.active_socket = utils.start_sending()
         self.send_certificate()
@@ -184,7 +179,7 @@ class User:
         c_message = utils.receive_data(self.active_socket, 'encrypted message')
         message = utils.aes_decrypt(self.cipher, c_message)
         print('do you want to write the message to a file ? if so input a "file:absolute_file_path" (example = '
-              'file:/etc/my_file.txt) if not type anything else \n')
+              'file:/etc/my_file.txt) if not type no\n')
         choice = input('input your choice: ')
         if choice[:5] == 'file:':
             utils.write_to_file(message, choice[5:])
@@ -194,14 +189,13 @@ class User:
 
     def start_conversation(self):
         """
-            function for making conversation for now, at first you must choose listen on one user
-            and then choose sent on second
+            function for making conversation, you must choose which user will be receiving and sending
         """
         conversation = True
         while conversation:
-            state = input('choose if you expect to listen, '
-                          'send message or quit (listen/send/quit): ')
-            if state == 'listen':
+            state = input('choose if you expect to receive, '
+                          'send message or quit (receive/send/quit): ')
+            if state == 'receive':
                 self.receive_data()
             if state == 'send':
                 self.send_data()

@@ -27,6 +27,7 @@ class CA:
         self.ss_certificate = self.create_self_signed_certificate()
         self.connection = socket.socket()
         self.list_of_certs = []
+        self.port = int
         utils.write_to_file(self.ss_certificate.public_bytes(utils.PEM), utils.get_certs_dir('ca-cert.pem'))
 
     def create_certificate_from_request(self, request: utils.x509.CertificateSigningRequest):
@@ -58,13 +59,13 @@ class CA:
             .sign(self.private_key, utils.hashes.SHA256(), utils.default_backend())
         return self.create_certificate_from_request(request)
 
-    def receive_certificate_request(self, port):
+    def start_listening(self):
         """
             first we establish connection, in an infinite while loop we listen for message telling us what to do
             if the verification of c_request fails communicate it to the host and try again
             :param port: port to listen on
         """
-        self.connection = utils.start_receiving(port)
+        self.connection = utils.start_receiving(self.port)
         while True:
             received_data = self.connection.recv(2048)
             if received_data == b'sending cert request':
@@ -78,7 +79,7 @@ class CA:
                 self.send_my_certificate()
             if received_data == b'fin':
                 utils.send_acknowledgement(self.connection)
-                print('ending connection, the same port can be used again')
+                print('ending connection, the same port can be used again ({})'.format(self.port))
                 self.connection.close()
                 break
 
@@ -118,9 +119,9 @@ def use_ca():
         it every time
     """
     ca = CA()
-    port = int(input('choose port to listen to : '))
+    ca.port = int(input('choose port to listen to : '))
     while True:
-        ca.receive_certificate_request(port)
+        ca.start_listening()
 
 
 use_ca()

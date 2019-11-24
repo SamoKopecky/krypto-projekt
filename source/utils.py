@@ -85,7 +85,7 @@ def start_receiving(port=0):
     server_socket.bind((LOCALHOST, port))
     server_socket.listen()
     connection, address = server_socket.accept()
-    print('\nconnected to {}'.format(address))
+    print('\nconnected to IP : {} PORT : {}'.format(address[0], address[1]))
     return connection
 
 
@@ -168,6 +168,15 @@ def rsa_decrypt(cipher_text, private_key):
     )
 
 
+def rsa_verify_certificate(trusted_certificate, untrusted_certificate):
+    trusted_certificate.public_key().verify(
+        untrusted_certificate.signature,
+        untrusted_certificate.tbs_certificate_bytes,
+        padding.PKCS1v15(),
+        untrusted_certificate.signature_hash_algorithm
+    )
+
+
 def aes_encrypt(cipher, data: bytes):
     """
         function to encrypt data with PKCS7 padding algorithm
@@ -178,8 +187,7 @@ def aes_encrypt(cipher, data: bytes):
     """
     encryptor = cipher.encryptor()
     padder = sym_padding.PKCS7(cipher.algorithm.block_size).padder()
-    padded_data = padder.update(data)
-    padded_data += padder.finalize()
+    padded_data = padder.update(data) + padder.finalize()
     return encryptor.update(padded_data) + encryptor.finalize()
 
 
@@ -194,9 +202,7 @@ def aes_decrypt(cipher, c_data: bytes):
     decryptor = cipher.decryptor()
     data = decryptor.update(c_data) + decryptor.finalize()
     unpadder = sym_padding.PKCS7(cipher.algorithm.block_size).unpadder()
-    unpaded_data = unpadder.update(data)
-    unpaded_data += unpadder.finalize()
-    return unpaded_data
+    return unpadder.update(data) + unpadder.finalize()
 
 
 def write_to_file(data, file_path):
