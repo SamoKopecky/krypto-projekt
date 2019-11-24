@@ -169,6 +169,13 @@ def rsa_decrypt(cipher_text, private_key):
 
 
 def rsa_verify_certificate(trusted_certificate, untrusted_certificate):
+    """
+        function that verifies the signature of an untrusted certificate with
+        the public key of the trusted certificate, if the verification fails
+        an exception is thrown
+        :param trusted_certificate: certificate to verify against
+        :param untrusted_certificate: certificate to verify
+    """
     trusted_certificate.public_key().verify(
         untrusted_certificate.signature,
         untrusted_certificate.tbs_certificate_bytes,

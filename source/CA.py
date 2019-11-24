@@ -75,9 +75,9 @@ class CA:
                     print('Verification of the request failed ')
                     utils.send_data(self.connection, b'verification failed', 'verification failed')
                     continue
-            if received_data == b'requesting your public key':
+            elif received_data == b'requesting your public key':
                 self.send_my_certificate()
-            if received_data == b'fin':
+            elif received_data == b'fin':
                 utils.send_acknowledgement(self.connection)
                 print('ending connection, the same port can be used again ({})'.format(self.port))
                 self.connection.close()

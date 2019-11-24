@@ -73,12 +73,11 @@ class User:
             state = input('Choose what do to (send/receive): ')
         if state == 'receive':
             self.finish_exchange_of_certificates()
-            self.receiving_aes_key()
-            self._create_aes_cipher()
-        if state == 'send':
+            self.receive_aes_key()
+        elif state == 'send':
             self.start_exchange_of_certificates()
-            self.sending_aes_key()
-            self._create_aes_cipher()
+            self.generate_and_send_aes_key()
+        self._create_aes_cipher()
 
     def finish_exchange_of_certificates(self):
         """
@@ -112,7 +111,7 @@ class User:
         self.ca_certificate = utils.x509.load_pem_x509_certificate(data, utils.default_backend())
         utils.finish_connection(ca_socket)
 
-    def receiving_aes_key(self):
+    def receive_aes_key(self):
         """
             same as function receiving_certificate but this time the user receives AES shared key
             aes is decrypted with RSA
@@ -136,7 +135,7 @@ class User:
         pem_certificate = self.my_certificate.public_bytes(utils.PEM)
         utils.send_data(self.active_socket, pem_certificate, 'certificate')
 
-    def sending_aes_key(self):
+    def generate_and_send_aes_key(self):
         """
             this method generates the shared AES key and vector which it will then send to the other user
             encrypted with RSA
@@ -197,10 +196,12 @@ class User:
                           'send message or quit (receive/send/quit): ')
             if state == 'receive':
                 self.receive_data()
-            if state == 'send':
+            elif state == 'send':
                 self.send_data()
-            if state == 'quit':
+            elif state == 'quit':
                 conversation = False
+            else:
+                print('unrecognized input try again')
 
 
 def use_user():
