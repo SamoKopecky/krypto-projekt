@@ -118,7 +118,9 @@ class User:
         """
         key = utils.receive_data(self.active_socket, 'aes key')
         self.aes_iv = utils.receive_data(self.active_socket, 'aes iv')
+        print('recieved aes_key and vector')
         self.aes_key = utils.rsa_decrypt(key, self.private_key)
+        print('decrypted aes_key : {a_k}'.format(a_k=self.aes_key))
 
     def start_exchange_of_certificates(self):
         """
@@ -143,8 +145,12 @@ class User:
             iv is 16 bytes long and can be sent in plain text
         """
         self.aes_key, self.aes_iv = os.urandom(32), os.urandom(16)
+        print('we generated aes key which is: {a_k}'.format(a_k = self.aes_key))
+        print('we generated vector which is: {a_iv}'.format(a_iv = self.aes_iv))
         other_public_key = self.other_certificate.public_key()
         data_to_send = utils.rsa_encrypt(self.aes_key, other_public_key)
+        print('sending signed aes key(by rsa with public key of other user) and aes vector')
+        print('signed key:  {s_k}'.format(s_k=data_to_send))
         utils.send_data(self.active_socket, data_to_send, 'aes key')
         utils.send_data(self.active_socket, self.aes_iv, 'aes iv')
 
@@ -154,6 +160,7 @@ class User:
         """
         if self.aes_key is None or self.aes_iv is None:
             raise ValueError('null value')
+        print('Creating aes cipher')
         self.cipher = Cipher(algorithms.AES(self.aes_key),
                              modes.CBC(self.aes_iv),
                              utils.default_backend()
@@ -168,6 +175,7 @@ class User:
         if message[:5] == 'file:':
             message = utils.read_file(message[5:])
         c_message = utils.aes_encrypt(self.cipher, bytes(message, 'utf-8'))
+        print('Sending our encrypted message: {c_m}'.format(c_m=c_message))
         utils.send_data(self.active_socket, c_message, 'encrypted message')
 
     def receive_data(self):
@@ -176,14 +184,16 @@ class User:
             in list of received message or a file
         """
         c_message = utils.receive_data(self.active_socket, 'encrypted message')
+        print('Recieved encrypted message: {c_m}'.format(c_m = c_message))
         message = utils.aes_decrypt(self.cipher, c_message)
         print('do you want to write the message to a file ? if so input a "file:absolute_file_path" (example = '
               'file:/etc/my_file.txt) if not type no\n')
         choice = input('input your choice: ')
         if choice[:5] == 'file:':
             utils.write_to_file(message, choice[5:])
-        else:
             print(message.decode())
+        else:
+            print('Decrypted received message: {message}'.format(message=message.decode()))
         self.received_messages.append(message.decode())
 
     def start_conversation(self):
