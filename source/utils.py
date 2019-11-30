@@ -79,13 +79,13 @@ def start_receiving(port=0):
     """
 
     if port == 0:
-        port = int(input('choose port to listen to : '))
+        port = int(input('choose port to listen to: '))
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((LOCALHOST, port))
     server_socket.listen()
     connection, address = server_socket.accept()
-    print('\nconnected to IP : {} PORT : {}'.format(address[0], address[1]))
+    print('\nconnected to IP: {} PORT: {}'.format(address[0], address[1]))
     return connection
 
 
@@ -96,7 +96,7 @@ def start_sending(port=0, return_port=False):
         :return: socket of the host we connected to
     """
     if port == 0:
-        port = int(input('choose port to send to : '))
+        port = int(input('choose port to send to: '))
         print('\n')
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -113,7 +113,7 @@ def send_data(user_socket, data, string):
         :param data: data to send
         :param string: what the host is sending
     """
-    print('sending : {}'.format(string))
+    print('sending: {}'.format(string))
     user_socket.send(data)
     wait_for_acknowledgement(user_socket)
 
@@ -126,7 +126,7 @@ def receive_data(user_socket, string):
         :return: returns the received data
     """
     data = user_socket.recv(2048)
-    print('receiving : {}'.format(string))
+    print('receiving: {}'.format(string))
     send_acknowledgement(user_socket)
     return data
 

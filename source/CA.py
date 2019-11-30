@@ -119,7 +119,7 @@ def use_ca():
         it every time
     """
     ca = CA()
-    ca.port = int(input('choose port to listen to : '))
+    ca.port = int(input('choose port to listen to: '))
     while True:
         ca.start_listening()
 
