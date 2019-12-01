@@ -241,13 +241,12 @@ def get_certs_dir(file_name):
     """
     current_os = platform.system()
     if current_os == 'Windows':
-        file_dir = os.getcwd()
-        dirs = file_dir.split('\\')[:-1]
-        return '\\'.join(dirs) + '\\certs\\{}'.format(file_name)
+        separator = '\\'
     elif current_os == 'Linux':
-        file_dir = os.path.dirname(os.path.realpath(__file__))
-        dirs = file_dir.split('/')[:-1]
-        return '/'.join(dirs) + '/certs/{}'.format(file_name)
+        separator = '/'
     else:
         print('unknown OS exiting')
         sys.exit()
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    dirs = file_dir.split(separator)[:-1]
+    return separator.join(dirs) + '{}certs{}{}'.format(separator, separator, file_name)
