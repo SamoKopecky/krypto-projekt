@@ -197,7 +197,7 @@ class User:
         """
             function for making conversation, you must choose which user will be receiving and sending
         """
-        print("\n################### STARTING CONVERSATION ###################n")
+        print("\n################### STARTING CONVERSATION ###################\n")
         conversation = True
         while conversation:
             state = input('choose if you expect to receive, '
