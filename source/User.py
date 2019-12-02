@@ -116,7 +116,7 @@ class User:
         self.aes_iv = utils.receive_data(self.active_socket, 'aes iv')
         print('decrypting aes key ...')
         self.aes_key = utils.rsa_decrypt(key, self.private_key)
-        print('decrypted aes key: {a_k}'.format(a_k=base64.b64encode(self.aes_key)))
+        print('decrypted aes key:\n {a_k}'.format(a_k=base64.b64encode(self.aes_key)))
 
     def start_exchange_of_certificates(self):
         """
@@ -145,7 +145,7 @@ class User:
         print('generated initializing vector is: {a_iv}'.format(a_iv=base64.b64encode(self.aes_iv)))
         other_public_key = self.other_certificate.public_key()
         data_to_send = utils.rsa_encrypt(self.aes_key, other_public_key)
-        print('encrypting the aes key with other users public key, encrypted key: {s_k}'.format(
+        print('encrypting the aes key with other users public key, encrypted key:\n {s_k}'.format(
             s_k=base64.b64encode(data_to_send)))
         utils.send_data(self.active_socket, data_to_send, 'encrypted aes key')
         utils.send_data(self.active_socket, self.aes_iv, 'aes iv')
@@ -172,7 +172,7 @@ class User:
             message = utils.read_file(message[5:])
         print('encrypting message ...')
         c_message = utils.aes_encrypt(self.cipher, bytes(message, 'utf-8'))
-        print('encrypted message: {c_m}'.format(c_m=base64.b64encode(c_message)))
+        print('encrypted message: \n {c_m}'.format(c_m=base64.b64encode(c_message)))
         utils.send_data(self.active_socket, c_message, 'encrypted message')
 
     def receive_data(self):
@@ -181,8 +181,8 @@ class User:
             in list of received message or a file
         """
         c_message = utils.receive_data(self.active_socket, 'encrypted message')
-        print('received encrypted message: {c_m}'.format(c_m=base64.b64encode(c_message)))
-        print('decrypting message ...')
+        print('received encrypted message:\n {c_m}'.format(c_m=base64.b64encode(c_message)))
+        print('decrypting message ...\n')
         message = utils.aes_decrypt(self.cipher, c_message)
         print('do you want to write the message to a file ? if so input a "file:absolute_file_path" (example = '
               'file:/etc/my_file.txt) if not type no\n')
@@ -197,6 +197,7 @@ class User:
         """
             function for making conversation, you must choose which user will be receiving and sending
         """
+        print("\n###################STARTING CONVERSATION##################\n")
         conversation = True
         while conversation:
             state = input('choose if you expect to receive, '
