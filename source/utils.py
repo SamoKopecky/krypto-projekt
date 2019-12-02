@@ -83,6 +83,7 @@ def start_receiving(port=0):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((LOCALHOST, port))
+    print('listening on port: {}'.format(port))
     server_socket.listen()
     connection, address = server_socket.accept()
     print('\nconnected to IP: {} PORT: {}'.format(address[0], address[1]))
@@ -229,12 +230,18 @@ def rsa_verify_certificate(trusted_certificate, untrusted_certificate):
         :param trusted_certificate: certificate to verify against
         :param untrusted_certificate: certificate to verify
     """
-    trusted_certificate.public_key().verify(
-        untrusted_certificate.signature,
-        untrusted_certificate.tbs_certificate_bytes,
-        padding.PKCS1v15(),
-        untrusted_certificate.signature_hash_algorithm
-    )
+    try:
+        print('verifying certificate ...')
+        trusted_certificate.public_key().verify(
+            untrusted_certificate.signature,
+            untrusted_certificate.tbs_certificate_bytes,
+            padding.PKCS1v15(),
+            untrusted_certificate.signature_hash_algorithm
+        )
+    except InvalidSignature:
+        print('verification failed exiting program')
+        sys.exit()
+    print('verification successful')
 
 
 def aes_encrypt(cipher, data: bytes):
