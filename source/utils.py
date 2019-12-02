@@ -106,28 +106,81 @@ def start_sending(port=0, return_port=False):
     return client_socket
 
 
+def send_big_data(user_socket, data, length):
+    """
+        this functions is used for sending data bigger then 2048 bytes, it splits the data into segments
+        which it then sends to the receiver
+        :param user_socket: socket to send to
+        :param data: data to send
+        :param length: original length of the data
+    """
+    segments = [data[i:i + 2048] for i in range(0, length, 2048)]
+    send_small_data(user_socket, bytes('len{}'.format(len(segments)), 'utf-8'))
+    for segment in segments:
+        send_small_data(user_socket, segment)
+
+
+def send_small_data(user_socket, data):
+    """
+        the simplest function for sending data
+        :param user_socket: socket to send to
+        :param data: data to be sent
+    """
+    user_socket.send(data)
+    wait_for_acknowledgement(user_socket)
+
+
+def receive_big_data(user_socket, num_of_segments):
+    """
+        receives the sent data by segments then it puts them togehter
+        :param user_socket: socket to receive on
+        :param num_of_segments: number of segments which will be sent
+        :return: the joint data
+    """
+    segments = []
+    for i in range(0, num_of_segments):
+        segments.append(receive_small_data(user_socket))
+    return b''.join(segments)
+
+
+def receive_small_data(user_socket):
+    """
+        the simplest function for receiving data
+        :param user_socket: socket to receive from
+        :return: returns the received data
+    """
+    data = user_socket.recv(2048)
+    send_acknowledgement(user_socket)
+    return data
+
+
 def send_data(user_socket, data, string):
     """
-        function to send a data and wait for confirmation
+        function for sending data, if the data is bigger then 2048 bytes, it sends the data by segments
         :param user_socket: socket to send to
         :param data: data to send
         :param string: what the host is sending
     """
     print('sending: {}'.format(string))
-    user_socket.send(data)
-    wait_for_acknowledgement(user_socket)
+    length = len(data)
+    if length > 2048:
+        send_big_data(user_socket, data, length)
+    else:
+        send_small_data(user_socket, data)
 
 
 def receive_data(user_socket, string):
     """
-        function for receving data
+        function for receiving data, if the data is bigger then 2048 bytes, it receives the data by chunks
+        after it received how many chunks it will receive
         :param user_socket: socket to receive from
         :param string: what is the host receiving
         :return: returns the received data
     """
-    data = user_socket.recv(2048)
     print('receiving: {}'.format(string))
-    send_acknowledgement(user_socket)
+    data = receive_small_data(user_socket)
+    if data[:3] == b'len':
+        data = receive_big_data(user_socket, int(data[3:]))
     return data
 
 
