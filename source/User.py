@@ -1,7 +1,6 @@
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 import os
-import sys
 import utils
 import base64
 
@@ -61,7 +60,7 @@ class User:
             utils.finish_connection(self.active_socket)
             self.send_request_to_ca()
             return
-        print('certificate was verified successfully')
+        print('CSR was verified successfully')
         self.my_certificate = utils.x509.load_pem_x509_certificate(received_data, utils.default_backend())
         utils.finish_connection(self.active_socket)
 
@@ -105,6 +104,8 @@ class User:
         utils.send_data(ca_socket, b'requesting your self-signed certificate', 'request for self-signed certificate')
         data = utils.receive_data(ca_socket, 'ca certificate')
         self.ca_certificate = utils.x509.load_pem_x509_certificate(data, utils.default_backend())
+        print('ready to verify self-signed certificate')
+        utils.rsa_verify_certificate(self.ca_certificate, self.ca_certificate)
         utils.finish_connection(ca_socket)
 
     def receive_aes_key(self):
@@ -219,6 +220,8 @@ def use_user():
     user = User()
     user.send_request_to_ca()
     user.get_ca_certificate()
+    print('ready to verify my certificate')
+    utils.rsa_verify_certificate(user.ca_certificate, user.my_certificate)
     utils.write_to_file(user.my_certificate.public_bytes(utils.PEM),
                         utils.get_certs_dir('{}-cert.pem').format(user.name)
                         )
