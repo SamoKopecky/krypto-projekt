@@ -57,13 +57,13 @@ class CA:
         request = utils.x509.CertificateSigningRequestBuilder() \
             .subject_name(fill_certificate_name()) \
             .sign(self.private_key, utils.hashes.SHA256(), utils.default_backend())
+
         return self.create_certificate_from_request(request)
 
     def start_listening(self):
         """
             first we establish connection, in an infinite while loop we listen for message telling us what to do
             if the verification of c_request fails communicate it to the host and try again
-            :param port: port to listen on
         """
         self.connection = utils.start_receiving(self.port)
         while True:
@@ -75,7 +75,7 @@ class CA:
                     print('Verification of the request failed ')
                     utils.send_data(self.connection, b'verification failed', 'verification failed')
                     continue
-            elif received_data == b'requesting your public key':
+            elif received_data == b'requesting your self-signed certificate':
                 self.send_my_certificate()
             elif received_data == b'fin':
                 utils.send_acknowledgement(self.connection)
@@ -88,20 +88,23 @@ class CA:
             first we convert the certificate request form PEM to x509 format, create the certificate and
             send the certificate and the signature back to the user
         """
-        print('ready to accept, sending ack')
+        print('ready to accept, sending acknowledgement')
         utils.send_acknowledgement(self.connection)
         received_data = utils.receive_data(self.connection, 'certificate request')
         request = utils.x509.load_pem_x509_csr(received_data, utils.default_backend())
+        print('verifying signature on CRS ...')
         request.public_key().verify(
             request.signature,
             request.tbs_certrequest_bytes,
             utils.padding.PKCS1v15(),
             request.signature_hash_algorithm
         )
+        print('signature verified, creating certificate ...')
+        print('signing certificate ...')
         certificate = self.create_certificate_from_request(request)
         self.list_of_certs.append(certificate)
         pem_certificate = certificate.public_bytes(utils.PEM)
-        utils.send_data(self.connection, pem_certificate, 'certificate')
+        utils.send_data(self.connection, pem_certificate, 'created certificate')
 
     def send_my_certificate(self):
         """
@@ -109,7 +112,7 @@ class CA:
         """
         utils.send_acknowledgement(self.connection)
         pem_public_key = self.ss_certificate.public_bytes(utils.PEM)
-        utils.send_data(self.connection, pem_public_key, 'public key')
+        utils.send_data(self.connection, pem_public_key, 'self-signed certificate')
 
 
 def use_ca():
